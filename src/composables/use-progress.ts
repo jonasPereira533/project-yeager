@@ -1,7 +1,7 @@
 import { computed, reactive, watch } from "vue";
 import { CASES } from "../data/cases.ts";
 
-const STORAGE_KEY = "yeagar_progress_v1";
+const STORAGE_KEY = "yeager_progress_v1";
 
 function loadFromStorage(): Record<string, string[]> {
   try {

@@ -11,8 +11,8 @@ import { syntaxHighlighting } from "@codemirror/language";
 import { sql, SQLite, type SQLNamespace } from "@codemirror/lang-sql";
 import type { SchemaTable } from "../types/case";
 import {
-  yeagarEditorTheme,
-  yeagarHighlightStyle,
+  yeagerEditorTheme,
+  yeagerHighlightStyle,
 } from "../utils/sql-editor-theme";
 
 function toSqlNamespace(schema: SchemaTable[]): SQLNamespace {
@@ -63,8 +63,8 @@ export function useSqlCodeMirror(options: UseSqlCodeMirrorOptions) {
         keymap.of([indentWithTab]),
         runKeymap,
         languageCompartment.of(buildSqlLanguage(options.schema.value)),
-        syntaxHighlighting(yeagarHighlightStyle),
-        yeagarEditorTheme,
+        syntaxHighlighting(yeagerHighlightStyle),
+        yeagerEditorTheme,
         placeholderExtension("-- escreva sua consulta SQL aqui"),
         EditorView.lineWrapping,
         EditorView.contentAttributes.of({

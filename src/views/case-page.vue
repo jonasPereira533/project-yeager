@@ -21,7 +21,7 @@ import {
 import type { Feedback, QueryResult, SchemaTable } from "../types/case";
 
 const { createDatabase } = useSqlEngine();
-const { markSolved, totalXP, level } = useProgress();
+const { markSolved } = useProgress();
 
 const activeCaseId = ref(CASES[0].id);
 const activeObjectiveId = ref<string | null>(null);
