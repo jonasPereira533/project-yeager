@@ -130,7 +130,9 @@ function runQuery() {
     const wasNew = markSolved(activeCaseId.value, objective.id);
     feedback.value = {
       type: "solved",
-      message: wasNew ? `CASO RESOLVIDO · +${objective.xp} XP` : "JÁ RESOLVIDO",
+      message: wasNew
+        ? `CHAMADO ENCERRADO · +${objective.xp} XP`
+        : "JÁ RESOLVIDO",
     };
   } else {
     feedback.value = { type: "open", message: "AINDA EM ABERTO" };
@@ -178,7 +180,7 @@ onMounted(() => {
 <style scoped>
 .desk {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 18.75rem 1fr;
   gap: 3rem;
   padding: 3rem 5vw 5rem;
   align-items: start;
@@ -190,7 +192,7 @@ onMounted(() => {
   font-size: 0.9rem;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 53.75rem) {
   .desk {
     grid-template-columns: 1fr;
     padding: 2.2rem 6vw 3.5rem;

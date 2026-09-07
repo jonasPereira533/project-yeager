@@ -32,17 +32,17 @@ const emit = defineEmits<{
   display: flex;
   gap: 0.7rem;
   padding: 1.1rem 5vw;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 0.063rem solid var(--rule);
   flex-wrap: wrap;
 }
 .case-chip {
   font-family: var(--font-mono);
   font-size: 0.8rem;
   color: var(--ink-muted);
-  border: 1px solid var(--rule);
+  border: 0.063rem solid var(--rule);
   background: var(--surface);
   padding: 0.5rem 1rem;
-  border-radius: 2px;
+  border-radius: 0.125rem;
   cursor: pointer;
   transition:
     border-color 0.2s,
@@ -58,8 +58,8 @@ const emit = defineEmits<{
   color: var(--ink);
 }
 .case-chip:focus-visible {
-  outline: 2px solid var(--amber);
-  outline-offset: 2px;
+  outline: 0.125rem solid var(--amber);
+  outline-offset: 0.125rem;
 }
 .num {
   color: var(--amber);

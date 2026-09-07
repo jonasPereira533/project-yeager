@@ -22,9 +22,9 @@ defineProps<{
 .feedback-stamp {
   display: inline-block;
   font-family: var(--font-display);
-  border: 3px solid;
+  border: 0.188rem solid;
   padding: 0.35rem 0.9rem;
-  border-radius: 4px;
+  border-radius: 0.25rem;
   transform: rotate(-6deg);
   font-size: 0.9rem;
   letter-spacing: 0.05em;
@@ -44,9 +44,9 @@ defineProps<{
   font-family: var(--font-mono);
   font-size: 0.82rem;
   color: #f2b3ac;
-  border: 1px solid var(--stamp-red);
+  border: 0.063rem solid var(--stamp-red);
   background: rgba(193, 68, 60, 0.1);
-  border-radius: 4px;
+  border-radius: 0.25rem;
   padding: 0.75rem 0.95rem;
   margin-top: 1.2rem;
   white-space: pre-wrap;

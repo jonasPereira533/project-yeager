@@ -66,9 +66,9 @@ watch(
   font-weight: 600;
   font-size: 0.95rem;
   padding: 0.85rem 1.6rem;
-  border-radius: 2px;
+  border-radius: 0.125rem;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: 0.063rem solid transparent;
   background: var(--amber);
   color: #1a1305;
 }
@@ -76,8 +76,8 @@ watch(
   background: #f0ae4d;
 }
 .run-btn:focus-visible {
-  outline: 2px solid var(--amber);
-  outline-offset: 2px;
+  outline: 0.125rem solid var(--amber);
+  outline-offset: 0.125rem;
 }
 .run-hint {
   font-family: var(--font-mono);

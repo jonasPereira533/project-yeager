@@ -8,7 +8,7 @@ defineProps<{
 
 <template>
   <div class="dossier" :data-num="`Nº ${activeCase.caseNumber}`">
-    <div class="dossier-title">Ficha do caso</div>
+    <div class="dossier-title">Relato do chamado</div>
     <div class="dossier-row">
       <span>Categoria</span><span>{{ activeCase.category }}</span>
     </div>
@@ -26,8 +26,8 @@ defineProps<{
 .dossier {
   position: relative;
   background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: 4px;
+  border: 0.063rem solid var(--rule);
+  border-radius: 0.25rem;
   padding: 2rem 2rem 1.6rem;
   margin-bottom: 2.2rem;
 }
@@ -37,12 +37,12 @@ defineProps<{
   top: -0.9rem;
   left: 1.6rem;
   background: var(--surface-2);
-  border: 1px solid var(--rule);
+  border: 0.063rem solid var(--rule);
   padding: 0.25rem 0.7rem;
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--ink-muted);
-  border-radius: 2px;
+  border-radius: 0.125rem;
 }
 .dossier-title {
   font-family: var(--font-mono);
@@ -56,7 +56,7 @@ defineProps<{
   display: flex;
   justify-content: space-between;
   padding: 0.6rem 0;
-  border-bottom: 1px dashed var(--rule);
+  border-bottom: 0.063rem dashed var(--rule);
   font-family: var(--font-mono);
   font-size: 0.88rem;
 }

@@ -29,8 +29,8 @@ defineProps<{
 }
 .schema-card {
   background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: 4px;
+  border: 0.063rem solid var(--rule);
+  border-radius: 0.25rem;
   margin-bottom: 0.7rem;
   overflow: hidden;
 }
@@ -40,7 +40,7 @@ defineProps<{
   font-size: 0.78rem;
   padding: 0.5rem 0.75rem;
   color: var(--amber);
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 0.063rem solid var(--rule);
 }
 .field {
   display: flex;

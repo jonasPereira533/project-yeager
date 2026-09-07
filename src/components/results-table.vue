@@ -49,12 +49,12 @@ defineProps<{
   text-align: left;
   color: var(--amber);
   padding: 0.5rem 0.7rem;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 0.063rem solid var(--rule);
   font-weight: 500;
 }
 .results-table td {
   padding: 0.45rem 0.7rem;
-  border-bottom: 1px dashed var(--rule);
+  border-bottom: 0.063rem dashed var(--rule);
   color: var(--ink);
 }
 .empty-note {

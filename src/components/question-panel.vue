@@ -53,15 +53,15 @@ watch(
   font-size: 0.8rem;
   color: var(--ink-muted);
   margin-top: 0.6rem;
-  border-left: 2px solid var(--rule);
+  border-left: 0.125rem solid var(--rule);
   padding-left: 0.7rem;
 }
 .btn {
   font-family: var(--font-sans);
   font-weight: 600;
-  border-radius: 2px;
+  border-radius: 0.125rem;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: 0.063rem solid transparent;
 }
 .btn-ghost {
   border-color: var(--rule);
@@ -78,7 +78,7 @@ watch(
   font-weight: 500;
 }
 .btn:focus-visible {
-  outline: 2px solid var(--amber);
-  outline-offset: 2px;
+  outline: 0.125rem solid var(--amber);
+  outline-offset: 0.125rem;
 }
 </style>

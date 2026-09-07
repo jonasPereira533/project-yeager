@@ -11,7 +11,7 @@
 <style scoped>
 footer {
   padding: 3rem 5vw;
-  border-top: 1px solid var(--rule);
+  border-top: 0.063rem solid var(--rule);
   display: flex;
   justify-content: space-between;
   align-items: center;

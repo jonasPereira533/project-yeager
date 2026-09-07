@@ -53,8 +53,8 @@ const { isSolved } = useProgress();
   align-items: center;
   gap: 0.6rem;
   padding: 0.65rem 0.8rem;
-  border: 1px solid var(--rule);
-  border-radius: 2px;
+  border: 0.063rem solid var(--rule);
+  border-radius: 0.125rem;
   margin-bottom: 0.55rem;
   background: var(--surface);
   cursor: pointer;
@@ -71,8 +71,8 @@ const { isSolved } = useProgress();
   opacity: 0.65;
 }
 .objective-row:focus-visible {
-  outline: 2px solid var(--amber);
-  outline-offset: 2px;
+  outline: 0.125rem solid var(--amber);
+  outline-offset: 0.125rem;
 }
 .label {
   font-family: var(--font-mono);
