@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import CasePage from "./views/case-page.vue";
 </script>
 
 <template>
-  <HelloWorld />
+  <case-page />
 </template>
