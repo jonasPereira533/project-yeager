@@ -15,8 +15,7 @@ function goHome() {
   currentView.value = 'home'
 }
 
-// TODO: quando a tela de resolução de caso (views/case-page.vue) for
-// plugada aqui, tratar esse evento pra abrir o caso escolhido.
+
 function onSelectCase(caseId: string) {
   console.log('Caso selecionado:', caseId)
 }

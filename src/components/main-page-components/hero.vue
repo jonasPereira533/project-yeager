@@ -1,5 +1,7 @@
 <script setup lang="ts">
-
+const emit = defineEmits<{
+  "go-to-cases": [];
+}>();
 </script>
 
 <template>
@@ -9,7 +11,7 @@
       <h1>Aprenda SQL<br>resolvendo casos reais.</h1>
       <p>Yeager transforma o banco de dados da VR Tech em uma investigação. Escolha um caso, escreva a consulta certa e descubra o que os registros têm a esconder.</p>
       <div class="cta-row">
-        <a href="#" class="btn btn-ghost">Ver Casos</a>
+        <a href="#" class="btn btn-ghost" @click.prevent="emit('go-to-cases')">Ver Casos</a>
 
         <a href="https://github.com/jonasPereira533/project-yeager" target="_blank" class="btn btn-ghost">GitHub</a>
       </div>
@@ -20,7 +22,7 @@
       <i class="ti ti-hat-cowboy card-icon" aria-hidden="true"></i>
       <h2>Bem-vindo, Tecnico #nome </h2>
       <p>A fila esta cheia de atendimentos, precisamos de você para resolver.</p>
-      <a href="#" class="btn btn-primary">Resolver casos</a>
+      <a href="#" class="btn btn-primary" @click.prevent="emit('go-to-cases')">Resolver casos</a>
     </div>
   </section>
 

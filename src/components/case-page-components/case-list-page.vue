@@ -57,10 +57,6 @@ function selectCase(caseId: string) {
     <div class="page-head">
       <div class="eyebrow">Arquivo de Casos</div>
       <h1>Escolha sua investigação</h1>
-      <p class="subtitle">
-        {{ CASES.length }} casos disponíveis, separados por nível de
-        dificuldade.
-      </p>
     </div>
 
     <div v-for="group in groupedCases" :key="group.level" class="level-group">
