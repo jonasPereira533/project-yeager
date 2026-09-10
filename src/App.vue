@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import MainHeader from './components/shared-components/main-header.vue'
-import Hero from './components/main-page-components/hero.vue'
-import Instructions from './components/main-page-components/instructions.vue'
-import MainFooter from './components/shared-components/main-footer.vue'
+
+import MainPage from "./views/main-page.vue";
+import CasePage from "./views/case-page.vue";
 </script>
 
 <template>
-  <main-header></main-header>
-  <hero></hero>
-  <instructions></instructions>
-  <main-footer></main-footer>
+  <main-page/>
+  <case-page/>
 </template>
