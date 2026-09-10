@@ -1,14 +1,35 @@
-:root {
-  --bg: #14171C;
-  --surface: #1B2028;
-  --surface-2: #21272F;
-  --ink: #EDEAE2;
-  --ink-muted: #8B93A1;
-  --amber: #E8A33D;
-  --stamp-red: #C1443C;
-  --teal: #4FA8A0;
-  --rule: rgba(237, 234, 226, 0.12);
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+*{
+  box-sizing: border-box;
 }
-body {
-  background-color: var(--bg);
+
+html{
+  scroll-behavior: smooth;
+}
+
+html, body{
+  margin:0;
+  padding:0;
+  width:100%;
+  overflow-x:hidden;
+}
+
+:root{
+  --bg:#14171C;
+  --surface:#1B2028;
+  --surface-2:#21272F;
+  --ink:#EDEAE2;
+  --ink-muted:#8B93A1;
+  --amber:#E8A33D;
+  --stamp-red:#C1443C;
+  --teal:#4FA8A0;
+  --rule:rgba(237,234,226,0.12);
+}
+
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'IBM Plex Sans', sans-serif;
+  line-height:1.5;
 }
