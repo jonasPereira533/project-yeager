@@ -22,6 +22,5 @@ function onSelectCase(caseId: string) {
 </script>
 
 <template>
-  <home-page v-if="currentView === 'home'" @go-to-cases="goToCases"></home-page>
-  <cases-page v-else @go-home="goHome" @select-case="onSelectCase"></cases-page>
+  <router-view/>
 </template>
