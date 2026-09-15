@@ -1,10 +1,14 @@
 <script setup lang="ts">
-
+const emit = defineEmits<{
+  "go-home": [];
+}>();
 </script>
 
 <template>
   <header>
-    <div class="logo">YEAGAR<span>.</span></div>
+    <button type="button" class="logo" @click="emit('go-home')">
+      YEAGAR<span>.</span>
+    </button>
     <div class="nav-links">
       <a href="#" class="login-link">Entrar</a>
       <a href="#" class="login-link">Criar</a>
@@ -24,6 +28,11 @@ header{
   font-family:'Special Elite', monospace;
   font-size:1.3rem;
   letter-spacing:0.06em;
+  background:none;
+  border:none;
+  color:var(--ink);
+  padding:0;
+  cursor:pointer;
 }
 .logo span{ color:var(--amber); }
 .nav-links{
