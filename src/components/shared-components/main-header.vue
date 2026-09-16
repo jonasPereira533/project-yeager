@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import {useRouter} from "vue-router";
+import { useRouter } from "vue-router";
+import { useAuth } from "../../composables/use-auth";
 
 const router = useRouter();
+const { user, loginWithGoogle, logout } = useAuth();
 
 const goToMainPage = () => {
-  router.push({name: 'main-page'});
+  router.push({ name: 'main-page' });
+}
+
+const handleAuthClick = () => {
+  if (user.value) {
+    logout();
+  } else {
+    loginWithGoogle();
+  }
 }
 </script>
 
@@ -14,8 +24,9 @@ const goToMainPage = () => {
       YEAGAR<span>.</span>
     </button>
     <div class="nav-links">
-      <a href="#" class="login-link">Entrar</a>
-      <a href="#" class="login-link">Criar</a>
+      <button type="button" class="login-link" @click="handleAuthClick">
+        {{ user ? 'Sair' : 'Entrar' }}
+      </button>
     </div>
   </header>
 </template>
@@ -48,11 +59,13 @@ header{
   font-family:'IBM Plex Mono', monospace;
   font-size:0.85rem;
   color:var(--ink-muted);
+  background:none;
   text-decoration:none;
   border:1px solid var(--rule);
   padding:0.5rem 1rem;
   border-radius:2px;
+  cursor:pointer;
   transition:border-color 0.2s, color 0.2s;
 }
-.login-link:hover{ border-color:var( --ink-muted); color:var(--ink); }
+.login-link:hover{ border-color:var(--ink-muted); color:var(--ink); }
 </style>
