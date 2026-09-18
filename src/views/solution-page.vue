@@ -19,6 +19,8 @@ import {
   toQueryResult,
 } from "../utils/compare-results";
 import type { Feedback, QueryResult, SchemaTable } from "../types/case";
+import MainHeader from "../components/shared-components/main-header.vue";
+import { useRoute } from "vue-router";
 
 const { createDatabase } = useSqlEngine();
 const { markSolved } = useProgress();
@@ -58,6 +60,14 @@ function readSchema(database: Database): SchemaTable[] {
       : [];
     return { name: tableName, columns };
   });
+}
+
+const route = useRoute();
+
+const caseIdFromQuery = route.query.caseId as string | undefined;
+
+if (caseIdFromQuery && CASES.some((c) => c.id === caseIdFromQuery)) {
+  activeCaseId.value = caseIdFromQuery;
 }
 
 async function loadCase(caseId: string) {
@@ -148,11 +158,7 @@ onMounted(() => {
   <p v-if="engineError" class="engine-error">{{ engineError }}</p>
 
   <template v-else>
-    <CaseStrip
-      :cases="CASES"
-      :active-case-id="activeCaseId"
-      @select="loadCase"
-    />
+    <MainHeader />
 
     <section class="desk">
       <aside>

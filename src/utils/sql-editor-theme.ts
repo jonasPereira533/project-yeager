@@ -10,7 +10,7 @@ export const yeagerEditorTheme = EditorView.theme(
       border: "1px solid var(--rule)",
       borderRadius: "4px",
       fontSize: "0.92rem",
-      minHeight: "130px",
+      minHeight: "350px",
       resize: "vertical",
       overflow: "auto",
     },
