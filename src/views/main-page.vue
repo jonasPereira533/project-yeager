@@ -3,14 +3,11 @@ import MainHeader from "../components/shared-components/main-header.vue";
 import Hero from "../components/main-page-components/hero.vue";
 import Instructions from "../components/main-page-components/instructions.vue";
 import MainFooter from "../components/shared-components/main-footer.vue";
-import {useRouter} from "vue-router";
 
-const router = useRouter();
 
 const emit = defineEmits<{
   "go-to-cases": [];
 }>();
-
 
 
 

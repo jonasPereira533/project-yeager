@@ -2,6 +2,9 @@
 import { computed } from "vue";
 import { CASES } from "../../data/cases";
 import type { Case } from "../../types/case";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 const emit = defineEmits<{
   "select-case": [caseId: string];
@@ -10,8 +13,8 @@ const emit = defineEmits<{
 const LEVEL_ORDER = ["Iniciante", "Intermediário", "Avançado"] as const;
 
 const LEVEL_META: Record<
-    (typeof LEVEL_ORDER)[number],
-    { colorClass: string; description: string }
+  (typeof LEVEL_ORDER)[number],
+  { colorClass: string; description: string }
 > = {
   Iniciante: {
     colorClass: "low",
@@ -35,21 +38,21 @@ interface CaseGroup {
 }
 
 const groupedCases = computed<CaseGroup[]>(() =>
-    LEVEL_ORDER.map((level) => ({
-      level,
-      colorClass: LEVEL_META[level].colorClass,
-      description: LEVEL_META[level].description,
-      cases: CASES.filter((c) => c.level === level),
-    })).filter((group) => group.cases.length > 0),
+  LEVEL_ORDER.map((level) => ({
+    level,
+    colorClass: LEVEL_META[level].colorClass,
+    description: LEVEL_META[level].description,
+    cases: CASES.filter((c) => c.level === level),
+  })).filter((group) => group.cases.length > 0),
 );
 
 function totalXp(caseItem: Case): number {
   return caseItem.objectives.reduce((sum, o) => sum + o.xp, 0);
 }
 
-function selectCase(caseId: string) {
-  emit("select-case", caseId);
-}
+const goToSolutionPage = (caseId: string) => {
+  router.push({ name: "solution-page", query: { caseId } });
+};
 </script>
 
 <template>
@@ -68,12 +71,12 @@ function selectCase(caseId: string) {
 
       <div class="case-grid">
         <div
-            v-for="caseItem in group.cases"
-            :key="caseItem.id"
-            :class="['case-card', group.colorClass]"
-            tabindex="0"
-            @click="selectCase(caseItem.id)"
-            @keydown.enter="selectCase(caseItem.id)"
+          v-for="caseItem in group.cases"
+          :key="caseItem.id"
+          :class="['case-card', group.colorClass]"
+          tabindex="0"
+          @click="goToSolutionPage(caseItem.id)"
+          @keydown.enter="goToSolutionPage(caseItem.id)"
         >
           <div class="case-card-top">
             <span class="case-number">Nº {{ caseItem.caseNumber }}</span>
@@ -85,7 +88,7 @@ function selectCase(caseId: string) {
           <div class="case-card-footer">
             <span class="case-tables">Tabelas: {{ caseItem.tables }}</span>
             <span class="case-objectives"
-            >{{ caseItem.objectives.length }} objetivos</span
+              >{{ caseItem.objectives.length }} objetivos</span
             >
           </div>
         </div>
@@ -172,9 +175,9 @@ function selectCase(caseId: string) {
   padding: 1.2rem 1.3rem;
   cursor: pointer;
   transition:
-      border-color 0.2s,
-      background 0.2s,
-      transform 0.15s;
+    border-color 0.2s,
+    background 0.2s,
+    transform 0.15s;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
