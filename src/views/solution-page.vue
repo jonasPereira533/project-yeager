@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowRef } from "vue";
 import type { Database } from "sql.js";
-import CaseStrip from "../components/case-strip.vue";
 import ObjectiveList from "../components/objective-list.vue";
 import SchemaPanel from "../components/schema-panel.vue";
 import DossierBriefing from "../components/dossier-briefing.vue";
