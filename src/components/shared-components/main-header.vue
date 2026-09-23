@@ -1,12 +1,16 @@
 <script setup lang="ts">
-const emit = defineEmits<{
-  "go-home": [];
-}>();
+import {useRouter} from "vue-router";
+
+const router = useRouter();
+
+const goToMainPage = () => {
+  router.push({name: 'main-page'});
+}
 </script>
 
 <template>
   <header>
-    <button type="button" class="logo" @click="emit('go-home')">
+    <button type="button" class="logo" @click="goToMainPage">
       YEAGAR<span>.</span>
     </button>
     <div class="nav-links">
