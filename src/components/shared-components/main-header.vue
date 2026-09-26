@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useRouter } from "vue-router";
 import { useAuth } from "../../composables/use-auth";
+import { useProgress } from "../../composables/use-progress";
 
 const router = useRouter();
 const { user, loginWithGoogle, logout } = useAuth();
+const { totalXP, level } = useProgress();
 
 const goToMainPage = () => {
   router.push({ name: 'main-page' });
@@ -24,6 +26,9 @@ const handleAuthClick = () => {
       YEAGAR<span>.</span>
     </button>
     <div class="nav-links">
+      <div class="xp-badge">
+        <span class="xp-value">{{ totalXP }} XP</span>
+      </div>
       <button type="button" class="login-link" @click="handleAuthClick">
         {{ user ? 'Sair' : 'Entrar' }}
       </button>
@@ -54,6 +59,20 @@ header{
   display:flex;
   align-items:center;
   gap: 2rem;
+}
+.xp-badge{
+  display:flex;
+  align-items:baseline;
+  gap:0.5rem;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:0.85rem;
+}
+.xp-value{
+  color:var(--ink-muted);
+  font-weight:600;
+}
+.xp-level{
+  color:var(--ink-muted);
 }
 .login-link{
   font-family:'IBM Plex Mono', monospace;

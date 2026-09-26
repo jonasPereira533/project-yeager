@@ -1,19 +1,37 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import type { Objective } from "../../types/case";
+import { useProgress } from "../../composables/use-progress";
 
 const props = defineProps<{
   objective: Objective | null;
+  caseId: string;
 }>();
+
+const { isHintUsed, useHint } = useProgress();
 
 const showHint = ref(false);
 
 watch(
-  () => props.objective?.id,
-  () => {
-    showHint.value = false;
-  },
+    () => props.objective?.id,
+    () => {
+      showHint.value = false;
+    },
 );
+
+const hintAlreadyUsed = computed(() =>
+    props.objective ? isHintUsed(props.caseId, props.objective.id) : false,
+);
+
+async function toggleHint() {
+  if (!props.objective) return;
+
+  if (!showHint.value && !hintAlreadyUsed.value) {
+    await useHint(props.caseId, props.objective.id);
+  }
+
+  showHint.value = !showHint.value;
+}
 </script>
 
 <template>
@@ -21,11 +39,17 @@ watch(
     <div class="question-head">
       <p>{{ objective.question }}</p>
       <button
-        class="btn btn-ghost btn-sm"
-        type="button"
-        @click="showHint = !showHint"
+          class="btn btn-ghost btn-sm"
+          type="button"
+          @click="toggleHint"
       >
-        {{ showHint ? "Esconder dica" : "Mostrar dica" }}
+        {{
+          showHint
+              ? "Esconder dica"
+              : hintAlreadyUsed
+                  ? "Mostrar dica"
+                  : "Mostrar dica (-5 XP)"
+        }}
       </button>
     </div>
     <p v-if="showHint" class="hint-text">{{ objective.hint }}</p>

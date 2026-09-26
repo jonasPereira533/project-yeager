@@ -8,8 +8,9 @@ service cloud.firestore {
 
       allow write: if request.auth != null
                    && request.auth.uid == userId
-                   && request.resource.data.keys().hasOnly(['solvedByCase'])
-                   && request.resource.data.solvedByCase is map;
+                   && request.resource.data.keys().hasOnly(['solvedByCase', 'hintsUsedByCase'])
+                   && (!('solvedByCase' in request.resource.data) || request.resource.data.solvedByCase is map)
+                   && (!('hintsUsedByCase' in request.resource.data) || request.resource.data.hintsUsedByCase is map);
     }
 
     match /{document=**} {

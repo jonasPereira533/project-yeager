@@ -35,28 +35,28 @@ const feedback = ref<Feedback>({ type: "none", message: "" });
 const engineError = ref("");
 
 const activeCase = computed(
-  () => CASES.find((c) => c.id === activeCaseId.value)!,
+    () => CASES.find((c) => c.id === activeCaseId.value)!,
 );
 const activeObjective = computed(
-  () =>
-    activeCase.value.objectives.find((o) => o.id === activeObjectiveId.value) ??
-    null,
+    () =>
+        activeCase.value.objectives.find((o) => o.id === activeObjectiveId.value) ??
+        null,
 );
 
 function readSchema(database: Database): SchemaTable[] {
   const tablesRes = database.exec(
-    "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;",
+      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;",
   );
   if (!tablesRes.length) return [];
   return tablesRes[0].values.map((row) => {
     const tableName = String(row[0]);
     const info = database.exec(`PRAGMA table_info(${tableName});`);
     const columns = info.length
-      ? info[0].values.map((col) => ({
+        ? info[0].values.map((col) => ({
           name: String(col[1]),
           type: String(col[2]),
         }))
-      : [];
+        : [];
     return { name: tableName, columns };
   });
 }
@@ -78,7 +78,7 @@ async function loadCase(caseId: string) {
     schema.value = readSchema(db.value);
   } catch {
     engineError.value =
-      "Não foi possível carregar o motor SQLite (sql.js). Verifique a conexão de rede.";
+        "Não foi possível carregar o motor SQLite (sql.js). Verifique a conexão de rede.";
     return;
   }
 
@@ -109,8 +109,8 @@ async function runQuery() {
     feedback.value = {
       type: "error",
       message:
-        "Erro na consulta: " +
-        (err instanceof Error ? err.message : String(err)),
+          "Erro na consulta: " +
+          (err instanceof Error ? err.message : String(err)),
     };
     return;
   }
@@ -136,11 +136,12 @@ async function runQuery() {
   const matches = rowSetsMatch(userRows, refRows);
 
   if (matches) {
-    const wasNew = await markSolved(activeCaseId.value, objective.id);    feedback.value = {
+    const wasNew = await markSolved(activeCaseId.value, objective.id);
+    feedback.value = {
       type: "solved",
       message: wasNew
-        ? `CHAMADO ENCERRADO · +${objective.xp} XP`
-        : "JÁ RESOLVIDO",
+          ? `CHAMADO ENCERRADO · +${objective.xp} XP`
+          : "JÁ RESOLVIDO",
     };
   } else {
     feedback.value = { type: "open", message: "AINDA EM ABERTO" };
@@ -161,16 +162,16 @@ onMounted(() => {
     <section class="desk">
       <aside>
         <ObjectiveList
-          :active-case="activeCase"
-          :active-objective-id="activeObjectiveId"
-          @select="selectObjective"
+            :active-case="activeCase"
+            :active-objective-id="activeObjectiveId"
+            @select="selectObjective"
         />
         <SchemaPanel :tables="schema" />
       </aside>
 
       <main>
         <DossierBriefing :active-case="activeCase" />
-        <QuestionPanel :objective="activeObjective" />
+        <QuestionPanel :objective="activeObjective" :case-id="activeCaseId" />
         <SqlEditor v-model="queryText" :schema="schema" @run="runQuery" />
         <FeedbackStamp :feedback="feedback" />
         <ResultsTable :result="result" :has-run="hasRun" />
