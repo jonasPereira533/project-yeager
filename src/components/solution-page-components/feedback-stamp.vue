@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Feedback } from "../types/case";
+import type { Feedback } from "../../types/case";
 
 defineProps<{
   feedback: Feedback;

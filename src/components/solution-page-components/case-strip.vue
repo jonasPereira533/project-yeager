@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Case } from "../types/case";
+import type { Case } from "../../types/case";
 
 defineProps<{
   cases: Case[];

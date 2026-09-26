@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import type { Objective } from "../types/case";
+import type { Objective } from "../../types/case";
 
 const props = defineProps<{
   objective: Objective | null;

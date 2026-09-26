@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { Case } from "../types/case";
-import { useProgress } from "../composables/use-progress";
+import type { Case } from "../../types/case";
+import { useProgress } from "../../composables/use-progress";
 
 const props = defineProps<{
   activeCase: Case;
