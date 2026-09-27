@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SchemaTable } from "../types/case";
+import type { SchemaTable } from "../../types/case";
 
 defineProps<{
   tables: SchemaTable[];

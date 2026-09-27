@@ -157,7 +157,7 @@ const CASES_BASICO: Case[] = [
       INSERT INTO MotivoCancelamento VALUES
         (1,'Produto em Falta',1,0),
         (2,'Cliente Desistiu',2,0),
-        (3,'Erro de Digitação',1,0),
+        (3,'Erro de Digitação',1,0), 
         (4,'Erro de Digitação (Duplicado)',1,1),
         (5,'Troco Incorreto',2,1),
         (6,'Preço Divergente',1,0),

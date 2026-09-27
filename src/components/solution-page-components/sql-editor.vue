@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, toRef, watch } from "vue";
-import type { SchemaTable } from "../types/case";
-import { useSqlCodeMirror } from "../composables/use-sql-codemirror";
+import type { SchemaTable } from "../../types/case";
+import { useSqlCodeMirror } from "../../composables/use-sql-codemirror";
 
 const props = defineProps<{
   modelValue: string;

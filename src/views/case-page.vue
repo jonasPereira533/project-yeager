@@ -2,15 +2,10 @@
 import MainHeader from "../components/shared-components/main-header.vue";
 import CaseListPage from "../components/case-page-components/case-list-page.vue";
 import MainFooter from "../components/shared-components/main-footer.vue";
-
-const emit = defineEmits<{
-  "go-home": [];
-  "select-case": [caseId: string];
-}>();
 </script>
 
 <template>
-  <main-header @go-home="emit('go-home')"></main-header>
-  <case-list-page @select-case="(id) => emit('select-case', id)"></case-list-page>
+  <main-header></main-header>
+  <case-list-page></case-list-page>
   <main-footer></main-footer>
 </template>
