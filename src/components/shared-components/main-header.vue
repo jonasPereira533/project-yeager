@@ -5,7 +5,7 @@ import { useProgress } from "../../composables/use-progress";
 
 const router = useRouter();
 const { user, loginWithGoogle, logout } = useAuth();
-const { totalXP, level } = useProgress();
+const { totalXP } = useProgress();
 
 const goToMainPage = () => {
   router.push({ name: 'main-page' });
