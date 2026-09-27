@@ -69,16 +69,19 @@ watch(
   border-radius: 0.125rem;
   cursor: pointer;
   border: 0.063rem solid transparent;
-  background: var(--amber);
   color: #1a1305;
+  background: var(--bg);
+}
+
+.run-btn {
+  border-color: var(--rule);
+  color: var(--ink-muted);
+  font-family: "IBM Plex Mono", monospace;
 }
 .run-btn:hover {
-  background: #f0ae4d;
+  border-color: var(--ink-muted);
 }
-.run-btn:focus-visible {
-  outline: 0.125rem solid var(--amber);
-  outline-offset: 0.125rem;
-}
+
 .run-hint {
   font-family: var(--font-mono);
   font-size: 0.75rem;

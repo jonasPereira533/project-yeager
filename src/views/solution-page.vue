@@ -8,7 +8,7 @@ import QuestionPanel from "../components/question-panel.vue";
 import SqlEditor from "../components/sql-editor.vue";
 import FeedbackStamp from "../components/feedback-stamp.vue";
 import ResultsTable from "../components/results-table.vue";
-import AppFooter from "../components/main-footer.vue";
+import CaseTabs from "../components/case-tabs.vue";
 import { CASES } from "../data/cases";
 import { useSqlEngine } from "../composables/use-sql-engine";
 import { useProgress } from "../composables/use-progress";
@@ -18,8 +18,8 @@ import {
   toQueryResult,
 } from "../utils/compare-results";
 import type { Feedback, QueryResult, SchemaTable } from "../types/case";
-import MainHeader from "../components/shared-components/main-header.vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import CaseRules from "../components/case-rules.vue";
 
 const { createDatabase } = useSqlEngine();
 const { markSolved } = useProgress();
@@ -68,6 +68,22 @@ const caseIdFromQuery = route.query.caseId as string | undefined;
 if (caseIdFromQuery && CASES.some((c) => c.id === caseIdFromQuery)) {
   activeCaseId.value = caseIdFromQuery;
 }
+
+const router = useRouter();
+
+const goToMainPage = () => {
+  router.push({ name: "main-page" });
+};
+
+const goToCasePage = () => {
+  router.push({ name: "case-page" });
+};
+
+const TABS = [
+  { id: "ficha", label: "Ficha do Caso" },
+  { id: "investigacao", label: "Investigação" },
+];
+const activeTab = ref<"ficha" | "investigacao">("ficha");
 
 async function loadCase(caseId: string) {
   activeCaseId.value = caseId;
@@ -154,47 +170,117 @@ onMounted(() => {
 </script>
 
 <template>
-  <p v-if="engineError" class="engine-error">{{ engineError }}</p>
+  <div v-if="!activeCase" class="not-found">
+    <p>Caso não encontrado.</p>
+    <a @click="goToMainPage">← Voltar pra lista de casos</a>
+  </div>
 
-  <template v-else>
-    <MainHeader />
+  <div v-else class="solution-page">
+    <div class="case-header">
+      <div class="case-info">
+        <span class="num">Nº {{ activeCase.caseNumber }}</span>
+        <h1>{{ activeCase.title }}</h1>
+        <span class="nivel">{{ activeCase.level }}</span>
+      </div>
+      <a @click="goToCasePage">← Voltar pra lista de casos</a>
+    </div>
 
-    <section class="desk">
-      <aside>
-        <ObjectiveList
-          :active-case="activeCase"
-          :active-objective-id="activeObjectiveId"
-          @select="selectObjective"
-        />
-        <SchemaPanel :tables="schema" />
-      </aside>
+    <p v-if="engineError" class="engine-error">{{ engineError }}</p>
+    <template v-else>
+      <CaseTabs v-model="activeTab" :tabs="TABS" />
 
-      <main>
+      <section v-show="activeTab === 'ficha'" class="desk">
         <DossierBriefing :active-case="activeCase" />
-        <QuestionPanel :objective="activeObjective" />
-        <SqlEditor v-model="queryText" :schema="schema" @run="runQuery" />
-        <FeedbackStamp :feedback="feedback" />
-        <ResultsTable :result="result" :has-run="hasRun" />
-      </main>
-    </section>
-  </template>
+        <CaseRules />
+      </section>
 
-  <AppFooter />
+      <section v-show="activeTab === 'investigacao'" class="desk">
+        <div class="investigacao-grid">
+          <aside>
+            <ObjectiveList
+              :active-case="activeCase"
+              :active-objective-id="activeObjectiveId"
+              @select="selectObjective"
+            />
+            <SchemaPanel :tables="schema" />
+          </aside>
+
+          <main>
+            <QuestionPanel :objective="activeObjective" />
+            <SqlEditor v-model="queryText" :schema="schema" @run="runQuery" />
+            <FeedbackStamp :feedback="feedback" />
+            <ResultsTable :result="result" :has-run="hasRun" />
+          </main>
+        </div>
+      </section>
+    </template>
+  </div>
 </template>
 
 <style scoped>
-.desk {
+.solution-page {
+  padding: 2.5rem 5vw 4rem;
+}
+
+.case-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.case-header .case-info {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  margin-bottom: 1.6rem;
+  flex-wrap: wrap;
+}
+.case-header .num {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--amber);
+  border: 1px solid var(--rule);
+  padding: 0.25rem 0.6rem;
+  border-radius: 2px;
+}
+.case-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  margin: 0;
+}
+.case-header .nivel {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.case-header a {
+  color: var(--amber);
+  display: inline-block;
+  cursor: pointer;
+}
+.investigacao-grid {
   display: grid;
-  grid-template-columns: 18.75rem 1fr;
-  gap: 3rem;
-  padding: 3rem 5vw 5rem;
+  grid-template-columns: 300px 1fr;
+  gap: 2.5rem;
   align-items: start;
 }
+
 .engine-error {
   padding: 2rem 5vw;
   color: var(--stamp-red);
   font-family: var(--font-mono);
   font-size: 0.9rem;
+}
+
+.not-found {
+  padding: 4rem 5vw;
+  font-family: var(--font-mono);
+}
+.not-found a {
+  color: var(--amber);
+  display: inline-block;
+  margin-top: 0.8rem;
 }
 
 @media (max-width: 53.75rem) {
