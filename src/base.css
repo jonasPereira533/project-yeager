@@ -287,3 +287,25 @@ code {
     border-right-color: var(--border);
   }
 }
+
+:root {
+  --bg: #14171c;
+  --surface: #1b2028;
+  --surface-2: #21272f;
+  --ink: #edeae2;
+  --ink-muted: #8b93a1;
+  --amber: #e8a33d;
+  --stamp-red: #c1443c;
+  --teal: #4fa8a0;
+  --rule: rgba(237, 234, 226, 0.12);
+  --font-sans: "IBM Plex Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --font-display: "Special Elite", monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", sans-serif;
+  line-height: 1.5;
+}

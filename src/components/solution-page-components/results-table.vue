@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { QueryResult } from "../types/case";
+import type { QueryResult } from "../../types/case";
 
 defineProps<{
   result: QueryResult | null;

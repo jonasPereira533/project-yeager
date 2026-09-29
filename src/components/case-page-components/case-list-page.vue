@@ -3,18 +3,17 @@ import { computed } from "vue";
 import { CASES } from "../../data/cases";
 import type { Case } from "../../types/case";
 import { useRouter } from "vue-router";
+import { useProgress } from "../../composables/use-progress";
 
 const router = useRouter();
+const { countSolved } = useProgress();
 
-const emit = defineEmits<{
-  "select-case": [caseId: string];
-}>();
 
 const LEVEL_ORDER = ["Iniciante", "Intermediário", "Avançado"] as const;
 
 const LEVEL_META: Record<
-  (typeof LEVEL_ORDER)[number],
-  { colorClass: string; description: string }
+    (typeof LEVEL_ORDER)[number],
+    { colorClass: string; description: string }
 > = {
   Iniciante: {
     colorClass: "low",
@@ -38,16 +37,20 @@ interface CaseGroup {
 }
 
 const groupedCases = computed<CaseGroup[]>(() =>
-  LEVEL_ORDER.map((level) => ({
-    level,
-    colorClass: LEVEL_META[level].colorClass,
-    description: LEVEL_META[level].description,
-    cases: CASES.filter((c) => c.level === level),
-  })).filter((group) => group.cases.length > 0),
+    LEVEL_ORDER.map((level) => ({
+      level,
+      colorClass: LEVEL_META[level].colorClass,
+      description: LEVEL_META[level].description,
+      cases: CASES.filter((c) => c.level === level),
+    })).filter((group) => group.cases.length > 0),
 );
 
 function totalXp(caseItem: Case): number {
   return caseItem.objectives.reduce((sum, o) => sum + o.xp, 0);
+}
+
+function isCaseSolved(caseItem: Case): boolean {
+  return countSolved(caseItem.id) === caseItem.objectives.length;
 }
 
 const goToSolutionPage = (caseId: string) => {
@@ -71,15 +74,22 @@ const goToSolutionPage = (caseId: string) => {
 
       <div class="case-grid">
         <div
-          v-for="caseItem in group.cases"
-          :key="caseItem.id"
-          :class="['case-card', group.colorClass]"
-          tabindex="0"
-          @click="goToSolutionPage(caseItem.id)"
-          @keydown.enter="goToSolutionPage(caseItem.id)"
+            v-for="caseItem in group.cases"
+            :key="caseItem.id"
+            :class="[
+            'case-card',
+            group.colorClass,
+            { solved: isCaseSolved(caseItem) },
+          ]"
+            tabindex="0"
+            @click="goToSolutionPage(caseItem.id)"
+            @keydown.enter="goToSolutionPage(caseItem.id)"
         >
           <div class="case-card-top">
-            <span class="case-number">Nº {{ caseItem.caseNumber }}</span>
+            <span class="case-number">
+              <span v-if="isCaseSolved(caseItem)" class="check">✔</span>
+              Nº {{ caseItem.caseNumber }}
+            </span>
             <span class="case-xp">{{ totalXp(caseItem) }} XP</span>
           </div>
           <h3 class="case-title">{{ caseItem.title }}</h3>
@@ -88,7 +98,7 @@ const goToSolutionPage = (caseId: string) => {
           <div class="case-card-footer">
             <span class="case-tables">Tabelas: {{ caseItem.tables }}</span>
             <span class="case-objectives"
-              >{{ caseItem.objectives.length }} objetivos</span
+            >{{ caseItem.objectives.length }} objetivos</span
             >
           </div>
         </div>
@@ -175,9 +185,10 @@ const goToSolutionPage = (caseId: string) => {
   padding: 1.2rem 1.3rem;
   cursor: pointer;
   transition:
-    border-color 0.2s,
-    background 0.2s,
-    transform 0.15s;
+      border-color 0.2s,
+      background 0.2s,
+      transform 0.15s,
+      opacity 0.2s;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -187,6 +198,9 @@ const goToSolutionPage = (caseId: string) => {
 }
 .case-card.high {
   border-left-color: var(--stamp-red);
+}
+.case-card.solved {
+  opacity: 0.65;
 }
 .case-card:hover,
 .case-card:focus-visible {
@@ -207,6 +221,10 @@ const goToSolutionPage = (caseId: string) => {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.8rem;
   color: var(--amber);
+}
+.case-number .check {
+  color: var(--teal);
+  margin-right: 0.35rem;
 }
 .case-xp {
   font-family: "IBM Plex Mono", monospace;

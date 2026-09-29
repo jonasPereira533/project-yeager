@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import {useRouter} from "vue-router";
+import { useRouter } from "vue-router";
+import { useAuth } from "../../composables/use-auth";
 
 const router = useRouter();
+const { user } = useAuth();
 
 const goToCases = () => {
-  router.push({name: "case-page"});
+  router.push({ name: "case-page" });
 }
 </script>
 
@@ -24,7 +26,8 @@ const goToCases = () => {
     <!-- Card lateral -->
     <div class="welcome-card">
       <i class="ti ti-hat-cowboy card-icon" aria-hidden="true"></i>
-      <h2>Bem-vindo, Tecnico #nome </h2>
+      <h2 v-if="user">Bem-vindo, Técnico {{ user.displayName?.split(' ')[0] }}</h2>
+      <h2 v-else>Bem-vindo</h2>
       <p>A fila esta cheia de atendimentos, precisamos de você para resolver.</p>
       <a href="#" class="btn btn-primary" @click="goToCases()">Resolver casos</a>
     </div>
@@ -136,5 +139,4 @@ const goToCases = () => {
   border-color: var(--ink-muted);
   color: var(--ink-muted);
 }
-
 </style>
