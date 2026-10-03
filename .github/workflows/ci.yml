@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Typecheck, build, audit
+    name: Typecheck, lint, build, audit
     runs-on: ubuntu-latest
 
     steps:
@@ -40,6 +40,9 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ci-placeholder.appspot.com
           VITE_FIREBASE_MESSAGING_SENDER_ID: "000000000000"
           VITE_FIREBASE_APP_ID: "1:0:ci:0:ci-placeholder"
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build
         run: npm run build

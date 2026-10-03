@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { CASES } from "../../data/cases";
-import type { Case } from "../../types/case";
+import { CASE_LEVELS, type Case, type CaseLevel } from "../../types/case";
 import { useProgress } from "../../composables/use-progress";
 
 const { countSolved } = useProgress();
 
-
-const LEVEL_ORDER = ["Iniciante", "Intermediário", "Avançado"] as const;
+// CASE_LEVELS é a fonte da verdade dos níveis; a ordem aqui é a de exibição.
+const LEVEL_ORDER = CASE_LEVELS;
 
 const LEVEL_META: Record<
-    (typeof LEVEL_ORDER)[number],
+    CaseLevel,
     { colorClass: string; description: string }
 > = {
   Iniciante: {
@@ -28,7 +28,7 @@ const LEVEL_META: Record<
 };
 
 interface CaseGroup {
-  level: string;
+  level: CaseLevel;
   colorClass: string;
   description: string;
   cases: Case[];

@@ -6,6 +6,7 @@ import { useSqlCodeMirror } from "../../composables/use-sql-codemirror";
 const props = defineProps<{
   modelValue: string;
   schema: SchemaTable[];
+  running?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -24,6 +25,7 @@ const { setValue } = useSqlCodeMirror({
   initialValue: props.modelValue,
   schema: toRef(props, "schema"),
   labelId: EDITOR_LABEL_ID,
+  isRunning: () => props.running ?? false,
   onChange: (value) => emit("update:modelValue", value),
   onRun: () => emit("run"),
 });
@@ -39,8 +41,14 @@ watch(
     <span :id="EDITOR_LABEL_ID" class="editor-label">Sua consulta</span>
     <div ref="editorContainer" class="editor-host" />
     <div class="editor-actions">
-      <button class="run-btn" type="button" @click="emit('run')">
-        Investigar ▶
+      <button
+        class="run-btn"
+        type="button"
+        :disabled="running"
+        :aria-busy="running"
+        @click="emit('run')"
+      >
+        {{ running ? "Consultando…" : "Investigar ▶" }}
       </button>
       <span class="run-hint"
         >Ctrl/Cmd + Enter também executa · Tab indenta</span
@@ -85,6 +93,14 @@ watch(
 }
 .run-btn:hover {
   border-color: var(--ink-muted);
+}
+.run-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.run-btn:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
 }
 
 .run-hint {

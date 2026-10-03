@@ -1,3 +1,12 @@
+export type CaseLevel = "Iniciante" | "Intermediário" | "Avançado";
+
+/** Union derivado de CASES — o typecheck acusa um nível novo não mapeado aqui. */
+export const CASE_LEVELS = [
+  "Iniciante",
+  "Intermediário",
+  "Avançado",
+] as const satisfies readonly CaseLevel[];
+
 export interface Objective {
   id: string;
   xp: number;
@@ -10,7 +19,7 @@ export interface Case {
   id: string;
   caseNumber: string;
   title: string;
-  level: string;
+  level: CaseLevel;
   category: string;
   tables: string;
   context: string;

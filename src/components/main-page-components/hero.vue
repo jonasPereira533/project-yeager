@@ -1,13 +1,7 @@
 <script setup lang="ts">
-import { useRouter } from "vue-router";
 import { useAuth } from "../../composables/use-auth";
 
-const router = useRouter();
 const { user } = useAuth();
-
-const goToCases = () => {
-  router.push({ name: "case-page" });
-}
 </script>
 
 <template>
@@ -17,9 +11,15 @@ const goToCases = () => {
       <h1>Aprenda SQL<br>resolvendo casos reais.</h1>
       <p>Yeager transforma o banco de dados da VR Tech em uma investigação. Escolha um caso, escreva a consulta certa e descubra o que os registros têm a esconder.</p>
       <div class="cta-row">
-        <a href="#" class="btn btn-ghost" @click="goToCases()">Ver Casos</a>
+        <RouterLink :to="{ name: 'case-page' }" class="btn btn-ghost">Ver Casos</RouterLink>
 
-        <a href="https://github.com/jonasPereira533/project-yeager" target="_blank" class="btn btn-ghost">GitHub</a>
+        <a
+          href="https://github.com/jonasPereira533/project-yeager"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-ghost"
+          >GitHub</a
+        >
       </div>
     </div>
 
@@ -29,7 +29,9 @@ const goToCases = () => {
       <h2 v-if="user">Bem-vindo, Técnico {{ user.displayName?.split(' ')[0] }}</h2>
       <h2 v-else>Bem-vindo</h2>
       <p>A fila esta cheia de atendimentos, precisamos de você para resolver.</p>
-      <a href="#" class="btn btn-primary" @click="goToCases()">Resolver casos</a>
+      <RouterLink :to="{ name: 'case-page' }" class="btn btn-primary"
+        >Resolver casos</RouterLink
+      >
     </div>
   </section>
 

@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, shallowRef } from "vue";
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  ref,
+  shallowRef,
+  watch,
+} from "vue";
 import type { Database } from "sql.js";
 import ObjectiveList from "../components/solution-page-components/objective-list.vue";
 import SchemaPanel from "../components/solution-page-components/schema-panel.vue";
@@ -17,7 +24,13 @@ import {
   rowSetsMatch,
   toQueryResult,
 } from "../utils/compare-results";
-import type { Feedback, QueryResult, SchemaTable } from "../types/case";
+import type {
+  Case,
+  Feedback,
+  Objective,
+  QueryResult,
+  SchemaTable,
+} from "../types/case";
 import { useRoute } from "vue-router";
 import CaseRules from "../components/solution-page-components/case-rules.vue";
 
@@ -33,46 +46,75 @@ const result = ref<QueryResult | null>(null);
 const hasRun = ref(false);
 const feedback = ref<Feedback>({ type: "none", message: "" });
 const engineError = ref("");
+const isRunning = ref(false);
 
 // Geração do contexto de execução. Incrementada a cada consulta e a cada troca
 // de caso/objetivo: um resultado que resolve depois da tela ter mudado é
 // descartado em vez de carimmar o objetivo que está visível.
 let runSeq = 0;
 
-const activeCase = computed(
-  () => CASES.find((c) => c.id === activeCaseId.value)!,
+// Sem `!`: um id inválido precisa renderizar o "Caso não encontrado" do
+// template, não estourar um TypeError no meio de loadCase.
+const activeCase = computed<Case | undefined>(() =>
+  CASES.find((c) => c.id === activeCaseId.value),
 );
 const activeObjective = computed(
   () =>
-    activeCase.value.objectives.find((o) => o.id === activeObjectiveId.value) ??
-    null,
+    activeCase.value?.objectives.find(
+      (o) => o.id === activeObjectiveId.value,
+    ) ?? null,
 );
+
+/** Identificadores que o SQLite não aceita sem aspas. */
+const BARE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_$]*$/;
+
+function quoteIdentifier(name: string): string {
+  // Aspas duplas com escape é a forma aceita pelo SQLite para identificadores.
+  return `"${name.replace(/"/g, '""')}"`;
+}
 
 function readSchema(database: Database): SchemaTable[] {
   const tablesRes = database.exec(
     "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;",
   );
   if (!tablesRes.length) return [];
-  return tablesRes[0].values.map((row) => {
-    const tableName = String(row[0]);
-    const info = database.exec(`PRAGMA table_info(${tableName});`);
-    const columns = info.length
-      ? info[0].values.map((col) => ({
-          name: String(col[1]),
-          type: String(col[2]),
-        }))
-      : [];
-    return { name: tableName, columns };
-  });
+
+  return tablesRes[0].values
+    .map((row) => String(row[0]))
+    // sqlite_sequence e afins não são tabelas do caso e poluem o painel.
+    .filter((tableName) => !tableName.startsWith("sqlite_"))
+    .map((tableName) => {
+      const quoted = BARE_IDENTIFIER.test(tableName)
+        ? tableName
+        : quoteIdentifier(tableName);
+      const info = database.exec(`PRAGMA table_info(${quoted});`);
+      const columns = info.length
+        ? info[0].values.map((col) => ({
+            name: String(col[1]),
+            type: String(col[2]),
+          }))
+        : [];
+      return { name: tableName, columns };
+    });
 }
 
 const route = useRoute();
 
-const caseIdFromQuery = route.query.caseId as string | undefined;
-
-if (caseIdFromQuery && CASES.some((c) => c.id === caseIdFromQuery)) {
-  activeCaseId.value = caseIdFromQuery;
+function caseIdFromQuery(): string | null {
+  const raw = route.query.caseId;
+  // query pode ser string | string[] | undefined.
+  const id = Array.isArray(raw) ? raw[0] : raw;
+  return id && CASES.some((c) => c.id === id) ? id : null;
 }
+
+const initialCaseId = caseIdFromQuery();
+if (initialCaseId) activeCaseId.value = initialCaseId;
+
+// O router reutiliza a instância em navegações para a mesma rota, então ler
+// route.query uma vez no setup faz `push` para outro caseId não trocar o caso.
+watch(caseIdFromQuery, (id) => {
+  if (id && id !== activeCaseId.value) loadCase(id);
+});
 
 const TABS = [
   { id: "ficha", label: "Ficha do Caso" },
@@ -83,18 +125,36 @@ const activeTab = ref<"ficha" | "investigacao">("ficha");
 async function loadCase(caseId: string) {
   const seq = ++runSeq;
   activeCaseId.value = caseId;
+  engineError.value = "";
+
   const c = activeCase.value;
+  if (!c) {
+    db.value?.close();
+    db.value = null;
+    schema.value = [];
+    return;
+  }
 
   let nextDb: Database | undefined;
   try {
+    // O WASM é baixado sob demanda: uma falha aqui é quase sempre de rede.
     nextDb = await createDatabase(c.setupSQL);
+  } catch (error) {
+    engineError.value =
+      "Não foi possível baixar o motor SQLite (sql.js). Verifique sua conexão.";
+    console.error("Falha ao carregar o motor sql.js:", error);
+    return;
+  }
+
+  try {
     schema.value = readSchema(nextDb);
-  } catch {
-    nextDb?.close();
-    if (seq === runSeq) {
-      engineError.value =
-        "Não foi possível carregar o motor SQLite (sql.js). Verifique a conexão de rede.";
-    }
+  } catch (error) {
+    // O banco abriu mas o esquema não pôde ser lido: isso é um problema nos
+    // dados do caso (setupSQL), não na rede.
+    nextDb.close();
+    engineError.value =
+      `Falha ao preparar o caso "${c.title}": o esquema do banco não pôde ser lido.`;
+    console.error("Falha ao ler o esquema do caso:", error);
     return;
   }
 
@@ -120,6 +180,10 @@ function selectObjective(objectiveId: string) {
 }
 
 async function runQuery() {
+  // database.exec é síncrono e bloqueia a main thread numa consulta pesada.
+  // Sem esta trava, um segundo clique dispara outra consulta no meio da primeira.
+  if (isRunning.value) return;
+
   const database = db.value;
   const sql = queryText.value.trim();
   if (!database || !sql) return;
@@ -131,7 +195,22 @@ async function runQuery() {
   const objective = activeObjective.value;
 
   hasRun.value = true;
+  isRunning.value = true;
 
+  try {
+    await execute(database, sql, caseId, objective, seq);
+  } finally {
+    if (seq === runSeq) isRunning.value = false;
+  }
+}
+
+async function execute(
+  database: Database,
+  sql: string,
+  caseId: string,
+  objective: Objective | null,
+  seq: number,
+) {
   let execResult;
   try {
     execResult = database.exec(sql);
@@ -262,7 +341,12 @@ onUnmounted(() => {
               :objective="activeObjective"
               :case-id="activeCaseId"
             />
-            <SqlEditor v-model="queryText" :schema="schema" @run="runQuery" />
+            <SqlEditor
+              v-model="queryText"
+              :schema="schema"
+              :running="isRunning"
+              @run="runQuery"
+            />
             <FeedbackStamp :feedback="feedback" />
             <ResultsTable :result="result" :has-run="hasRun" />
           </div>

@@ -4,7 +4,7 @@ import { useAuth } from "../../composables/use-auth";
 import { useProgress } from "../../composables/use-progress";
 
 const router = useRouter();
-const { user, loginWithGoogle, logout } = useAuth();
+const { user, loginWithGoogle, logout, pending, errorMessage } = useAuth();
 const { totalXP } = useProgress();
 
 const goToMainPage = () => {
@@ -29,10 +29,20 @@ const handleAuthClick = () => {
       <div class="xp-badge">
         <span class="xp-value">{{ totalXP }} XP</span>
       </div>
-      <button type="button" class="login-link" @click="handleAuthClick">
-        {{ user ? "Sair" : "Entrar" }}
+      <button
+        type="button"
+        class="login-link"
+        :disabled="pending"
+        :aria-busy="pending"
+        @click="handleAuthClick"
+      >
+        {{ pending ? "Aguarde…" : user ? "Sair" : "Entrar" }}
       </button>
     </div>
+    <!-- role="alert" para o erro de login ser anunciado imediatamente. -->
+    <p v-if="errorMessage" class="auth-error" role="alert">
+      {{ errorMessage }}
+    </p>
   </header>
 </template>
 
@@ -41,6 +51,8 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* flex-wrap para o .auth-error ocupar a linha inteira abaixo do conteúdo. */
+  flex-wrap: wrap;
   padding: 1.5rem 5vw;
   border-bottom: 1px solid var(--rule);
 }
@@ -90,5 +102,16 @@ header {
 .login-link:hover {
   border-color: var(--ink-muted);
   color: var(--ink);
+}
+.login-link:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+.auth-error {
+  flex-basis: 100%;
+  margin: 0.6rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--stamp-red);
 }
 </style>
