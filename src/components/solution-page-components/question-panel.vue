@@ -11,11 +11,13 @@ const props = defineProps<{
 const { isHintUsed, useHint } = useProgress();
 
 const showHint = ref(false);
+const hintNotice = ref("");
 
 watch(
     () => props.objective?.id,
     () => {
       showHint.value = false;
+      hintNotice.value = "";
     },
 );
 
@@ -24,13 +26,28 @@ const hintAlreadyUsed = computed(() =>
 );
 
 async function toggleHint() {
-  if (!props.objective) return;
+  const objective = props.objective;
+  if (!objective) return;
 
-  if (!showHint.value && !hintAlreadyUsed.value) {
-    await useHint(props.caseId, props.objective.id);
+  const objectiveId = objective.id;
+  const caseId = props.caseId;
+  const willShow = !showHint.value;
+  hintNotice.value = "";
+
+  if (willShow && !isHintUsed(caseId, objectiveId)) {
+    const outcome = await useHint(caseId, objectiveId);
+
+    // Se o objetivo mudou enquanto o Firestore resolvia, a dica visível agora é
+    // de outro objetivo e a cobrança foi para o anterior: não abre de graça.
+    if (props.objective?.id !== objectiveId) return;
+
+    if (outcome === "error") {
+      hintNotice.value =
+        "Não foi possível registrar o custo da dica. Ela foi liberada, mas o -5 XP pode não ter sido salvo.";
+    }
   }
 
-  showHint.value = !showHint.value;
+  showHint.value = willShow;
 }
 </script>
 
@@ -53,6 +70,7 @@ async function toggleHint() {
       </button>
     </div>
     <p v-if="showHint" class="hint-text">{{ objective.hint }}</p>
+    <p v-if="hintNotice" class="hint-notice">{{ hintNotice }}</p>
   </div>
 </template>
 
@@ -78,6 +96,14 @@ async function toggleHint() {
   color: var(--ink-muted);
   margin-top: 0.6rem;
   border-left: 0.125rem solid var(--rule);
+  padding-left: 0.7rem;
+}
+.hint-notice {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--stamp-red);
+  margin-top: 0.5rem;
+  border-left: 0.125rem solid var(--stamp-red);
   padding-left: 0.7rem;
 }
 .btn {

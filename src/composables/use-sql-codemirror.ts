@@ -35,6 +35,8 @@ export interface UseSqlCodeMirrorOptions {
   container: Ref<HTMLElement | null>;
   initialValue: string;
   schema: Ref<SchemaTable[]>;
+  /** Id do <label> visível, para ser associado em vez de um aria-label próprio. */
+  labelId?: string;
   onChange: (value: string) => void;
   onRun: () => void;
 }
@@ -68,7 +70,9 @@ export function useSqlCodeMirror(options: UseSqlCodeMirrorOptions) {
         placeholderExtension("-- escreva sua consulta SQL aqui"),
         EditorView.lineWrapping,
         EditorView.contentAttributes.of({
-          "aria-label": "Editor de consulta SQL",
+          ...(options.labelId
+            ? { "aria-labelledby": options.labelId }
+            : { "aria-label": "Editor de consulta SQL" }),
         }),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {

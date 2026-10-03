@@ -1,4 +1,4 @@
-import { computed, reactive, watch } from "vue";
+import { computed, effectScope, reactive, watch } from "vue";
 import { doc, setDoc, arrayUnion } from "firebase/firestore";
 import { useCurrentUser, useDocument, useFirestore } from "vuefire";
 import { CASES } from "../data/cases.ts";
@@ -8,7 +8,18 @@ const HINT_PENALTY = 5;
 const guestSolvedByCase = reactive<Record<string, string[]>>({});
 const guestHintsByCase = reactive<Record<string, string[]>>({});
 
-export function useProgress() {
+// IDs já enviados ao Firestore que ainda não voltaram no snapshot. Sem isto a
+// guarda em markSolved/useHint é lida de um snapshot defasado e dois cliques
+// rápidos creditam o mesmo objetivo em dobro.
+const pendingSolved = new Set<string>();
+const pendingHints = new Set<string>();
+
+const progressKey = (caseId: string, objectiveId: string) =>
+    `${caseId}:${objectiveId}`;
+
+export type ProgressOutcome = "new" | "duplicate" | "error";
+
+function createProgress() {
   const db = useFirestore();
   const user = useCurrentUser();
 
@@ -29,19 +40,25 @@ export function useProgress() {
 
     const solvedUpdates: Record<string, ReturnType<typeof arrayUnion>> = {};
     for (const [caseId, objectiveIds] of Object.entries(guestSolvedByCase)) {
-      solvedUpdates[caseId] = arrayUnion(...objectiveIds);
+      if (objectiveIds.length) solvedUpdates[caseId] = arrayUnion(...objectiveIds);
     }
 
     const hintUpdates: Record<string, ReturnType<typeof arrayUnion>> = {};
     for (const [caseId, objectiveIds] of Object.entries(guestHintsByCase)) {
-      hintUpdates[caseId] = arrayUnion(...objectiveIds);
+      if (objectiveIds.length) hintUpdates[caseId] = arrayUnion(...objectiveIds);
     }
 
-    await setDoc(
-        doc(db, "users", newUser.uid),
-        { solvedByCase: solvedUpdates, hintsUsedByCase: hintUpdates },
-        { merge: true },
-    );
+    try {
+      await setDoc(
+          doc(db, "users", newUser.uid),
+          { solvedByCase: solvedUpdates, hintsUsedByCase: hintUpdates },
+          { merge: true },
+      );
+    } catch (error) {
+      // Preserva os dados de visitante para uma tentativa posterior.
+      console.error("Falha ao migrar progresso de visitante:", error);
+      return;
+    }
 
     Object.keys(guestSolvedByCase).forEach((key) => delete guestSolvedByCase[key]);
     Object.keys(guestHintsByCase).forEach((key) => delete guestHintsByCase[key]);
@@ -56,6 +73,7 @@ export function useProgress() {
   );
 
   function isSolved(caseId: string, objectiveId: string): boolean {
+    if (pendingSolved.has(progressKey(caseId, objectiveId))) return true;
     return (solvedByCase.value[caseId] ?? []).includes(objectiveId);
   }
 
@@ -64,42 +82,66 @@ export function useProgress() {
   }
 
   function isHintUsed(caseId: string, objectiveId: string): boolean {
+    if (pendingHints.has(progressKey(caseId, objectiveId))) return true;
     return (hintsUsedByCase.value[caseId] ?? []).includes(objectiveId);
   }
 
   async function markSolved(
       caseId: string,
       objectiveId: string,
-  ): Promise<boolean> {
-    if (isSolved(caseId, objectiveId)) return false;
+  ): Promise<ProgressOutcome> {
+    if (isSolved(caseId, objectiveId)) return "duplicate";
 
     if (userDocRef.value) {
-      await setDoc(
-          userDocRef.value,
-          { solvedByCase: { [caseId]: arrayUnion(objectiveId) } },
-          { merge: true },
-      );
-    } else {
-      if (!guestSolvedByCase[caseId]) guestSolvedByCase[caseId] = [];
-      guestSolvedByCase[caseId].push(objectiveId);
+      const pendingKey = progressKey(caseId, objectiveId);
+      pendingSolved.add(pendingKey);
+      try {
+        await setDoc(
+            userDocRef.value,
+            { solvedByCase: { [caseId]: arrayUnion(objectiveId) } },
+            { merge: true },
+        );
+        return "new";
+      } catch (error) {
+        console.error("Falha ao salvar objetivo resolvido:", error);
+        return "error";
+      } finally {
+        pendingSolved.delete(pendingKey);
+      }
     }
-    return true;
+
+    if (!guestSolvedByCase[caseId]) guestSolvedByCase[caseId] = [];
+    guestSolvedByCase[caseId].push(objectiveId);
+    return "new";
   }
 
-  async function useHint(caseId: string, objectiveId: string): Promise<boolean> {
-    if (isHintUsed(caseId, objectiveId)) return false;
+  async function useHint(
+      caseId: string,
+      objectiveId: string,
+  ): Promise<ProgressOutcome> {
+    if (isHintUsed(caseId, objectiveId)) return "duplicate";
 
     if (userDocRef.value) {
-      await setDoc(
-          userDocRef.value,
-          { hintsUsedByCase: { [caseId]: arrayUnion(objectiveId) } },
-          { merge: true },
-      );
-    } else {
-      if (!guestHintsByCase[caseId]) guestHintsByCase[caseId] = [];
-      guestHintsByCase[caseId].push(objectiveId);
+      const pendingKey = progressKey(caseId, objectiveId);
+      pendingHints.add(pendingKey);
+      try {
+        await setDoc(
+            userDocRef.value,
+            { hintsUsedByCase: { [caseId]: arrayUnion(objectiveId) } },
+            { merge: true },
+        );
+        return "new";
+      } catch (error) {
+        console.error("Falha ao registrar uso de dica:", error);
+        return "error";
+      } finally {
+        pendingHints.delete(pendingKey);
+      }
     }
-    return true;
+
+    if (!guestHintsByCase[caseId]) guestHintsByCase[caseId] = [];
+    guestHintsByCase[caseId].push(objectiveId);
+    return "new";
   }
 
   const totalXP = computed(() => {
@@ -119,8 +161,6 @@ export function useProgress() {
     return Math.max(0, xp - hintsCount * HINT_PENALTY);
   });
 
-  const level = computed(() => Math.floor(totalXP.value / 50) + 1);
-
   return {
     isSolved,
     countSolved,
@@ -128,6 +168,29 @@ export function useProgress() {
     isHintUsed,
     useHint,
     totalXP,
-    level,
   };
+}
+
+type Progress = ReturnType<typeof createProgress>;
+
+let shared: Progress | null = null;
+
+/**
+ * Progresso do usuário como singleton do app.
+ *
+ * useDocument()/useFirestore() criam uma assinatura do Firestore e um watch por
+ * chamada. Com cinco componentes consumindo isto, cada um abria a sua própria
+ * assinatura e o watch de migração de visitante rodava cinco vezes no login.
+ *
+ * A criação é pregada no primeiro uso (que acontece dentro de setup, depois de
+ * app.use(VueFire)) e roda num effectScope destacado: o VueFire registra
+ * onScopeDispose para desligar o onSnapshot, então um escopo destacado é o que
+ * impede a assinatura de morrer no unmount do primeiro componente. Nunca é
+ * descartado — é o mesmo tempo de vida do app.
+ */
+export function useProgress(): Progress {
+  if (!shared) {
+    shared = effectScope(true).run(createProgress)!;
+  }
+  return shared;
 }

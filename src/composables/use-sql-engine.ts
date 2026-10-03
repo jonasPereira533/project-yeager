@@ -12,6 +12,8 @@ function loadEngine(): Promise<SqlJsStatic> {
 }
 
 export function useSqlEngine() {
+  // O banco vive na memória do WASM: quem chama é dono do lifetime e precisa
+  // fechar com db.close() — trocar de caso ou desmontar a view sem isso vaza.
   async function createDatabase(setupSQL: string): Promise<Database> {
     const SQL = await loadEngine();
     const db = new SQL.Database();

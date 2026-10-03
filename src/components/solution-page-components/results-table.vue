@@ -5,25 +5,58 @@ defineProps<{
   result: QueryResult | null;
   hasRun: boolean;
 }>();
+
+const CAPTION_ID = "results-caption";
+
+/**
+ * sql.js devolve nomes de coluna crus, que podem se repetir
+ * (SELECT c.Codigo, p.Codigo FROM ...). O índice entra na key para o Vue não
+ * acusar chaves duplicadas no cabeçalho.
+ */
+function cellKey(columnIndex: number, column: string): string {
+  return `${columnIndex}:${column}`;
+}
+
+/** Distingue um NULL real da string 'NULL', e evita BLOB virando lista de bytes. */
+function formatCell(value: unknown): string {
+  if (value === null) return "NULL";
+  if (value instanceof Uint8Array) {
+    return `<blobby ${value.length} bytes>`;
+  }
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
 </script>
 
 <template>
   <div class="results-block">
-    <span class="eyebrow">Resultado da consulta</span>
+    <span :id="CAPTION_ID" class="eyebrow">Resultado da consulta</span>
     <p v-if="!hasRun" class="empty-note">Nenhuma consulta executada ainda.</p>
     <p v-else-if="!result || result.values.length === 0" class="empty-note">
       A consulta rodou, mas não retornou linhas.
     </p>
-    <table v-else class="results-table">
+    <table v-else class="results-table" :aria-labelledby="CAPTION_ID">
       <thead>
         <tr>
-          <th v-for="col in result.columns" :key="col">{{ col }}</th>
+          <th
+            v-for="(col, colIndex) in result.columns"
+            :key="cellKey(colIndex, col)"
+            scope="col"
+          >
+            {{ col }}
+          </th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="(row, i) in result.values" :key="i">
           <td v-for="(cell, j) in row" :key="j">
-            {{ cell === null ? "NULL" : cell }}
+            <span
+              v-if="cell === null"
+              class="null"
+              title="Valor NULO no banco"
+              >NULL</span
+            >
+            <template v-else>{{ formatCell(cell) }}</template>
           </td>
         </tr>
       </tbody>
@@ -56,6 +89,11 @@ defineProps<{
   padding: 0.45rem 0.7rem;
   border-bottom: 0.063rem dashed var(--rule);
   color: var(--ink);
+}
+/* NULL do banco é itálico e esmaecido, para não se confundir com a string. */
+.results-table td .null {
+  font-style: italic;
+  color: var(--ink-muted);
 }
 .empty-note {
   font-family: var(--font-mono);

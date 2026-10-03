@@ -16,10 +16,11 @@ footer{
   text-align: center;
 }
 
-footer p{
-  font-family: 'IBM Plex Mono', monospace;
+footer p {
+  font-family: "IBM Plex Mono", monospace;
   font-size: 0.85rem;
-  line-height: 0.5;
+  /* 0.5 cortava as descendentes e colava o texto no topo do padding. */
+  line-height: 1.5;
   color: var(--ink-muted);
   margin: 0;
 }

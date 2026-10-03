@@ -15,10 +15,15 @@ const emit = defineEmits<{
 
 const editorContainer = ref<HTMLElement | null>(null);
 
+// O CodeMirror não é um elemento labelável, então o <label> visível aponta para
+// o id e o editor o consome via aria-labelledby.
+const EDITOR_LABEL_ID = "sql-editor-label";
+
 const { setValue } = useSqlCodeMirror({
   container: editorContainer,
   initialValue: props.modelValue,
   schema: toRef(props, "schema"),
+  labelId: EDITOR_LABEL_ID,
   onChange: (value) => emit("update:modelValue", value),
   onRun: () => emit("run"),
 });
@@ -31,7 +36,7 @@ watch(
 
 <template>
   <div>
-    <label class="editor-label">Sua consulta</label>
+    <span :id="EDITOR_LABEL_ID" class="editor-label">Sua consulta</span>
     <div ref="editorContainer" class="editor-host" />
     <div class="editor-actions">
       <button class="run-btn" type="button" @click="emit('run')">
@@ -69,16 +74,19 @@ watch(
   border-radius: 0.125rem;
   cursor: pointer;
   border: 0.063rem solid transparent;
-  background: var(--amber);
   color: #1a1305;
+  background: var(--bg);
+}
+
+.run-btn {
+  border-color: var(--rule);
+  color: var(--ink-muted);
+  font-family: "IBM Plex Mono", monospace;
 }
 .run-btn:hover {
-  background: #f0ae4d;
+  border-color: var(--ink-muted);
 }
-.run-btn:focus-visible {
-  outline: 0.125rem solid var(--amber);
-  outline-offset: 0.125rem;
-}
+
 .run-hint {
   font-family: var(--font-mono);
   font-size: 0.75rem;
