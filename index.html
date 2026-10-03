@@ -1,13 +1,22 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/yeagar_favicon_db_v2.svg" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%yeagar_favicon_db_v2.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Yeager — investigue casos reais de banco de dados resolvendo consultas SQL em SQLite, direto no navegador."
+    />
+    <meta name="theme-color" content="#14171c" />
     <title>Yeager.</title>
   </head>
   <body>
     <div id="app"></div>
+    <noscript>
+      O Yeager executa consultas SQL no navegador e precisa de JavaScript
+      habilitado.
+    </noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

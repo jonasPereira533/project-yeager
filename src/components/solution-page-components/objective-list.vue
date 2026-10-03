@@ -18,24 +18,27 @@ const { isSolved } = useProgress();
   <div class="side-block">
     <span class="eyebrow">Objetivos do chamado</span>
 
-    <div
+    <button
       v-for="(o, i) in props.activeCase.objectives"
       :key="o.id"
+      type="button"
       class="objective-row"
       :class="{
         active: o.id === activeObjectiveId,
         solved: isSolved(props.activeCase.id, o.id),
       }"
-      tabindex="0"
+      :aria-current="o.id === activeObjectiveId ? 'true' : undefined"
       @click="emit('select', o.id)"
-      @keydown.enter="emit('select', o.id)"
     >
       <span class="label">
         <span v-if="isSolved(props.activeCase.id, o.id)" class="check">✔</span>
+        <span v-if="isSolved(props.activeCase.id, o.id)" class="sr-only"
+          >Resolvido</span
+        >
         Objetivo {{ i + 1 }}
       </span>
       <span class="xp">{{ o.xp }} XP</span>
-    </div>
+    </button>
   </div>
 </template>
 
@@ -52,11 +55,15 @@ const { isSolved } = useProgress();
   justify-content: space-between;
   align-items: center;
   gap: 0.6rem;
+  width: 100%;
   padding: 0.65rem 0.8rem;
   border: 0.063rem solid var(--rule);
   border-radius: 0.125rem;
   margin-bottom: 0.55rem;
   background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
   transition: border-color 0.2s;
 }

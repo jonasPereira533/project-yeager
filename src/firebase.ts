@@ -1,5 +1,4 @@
 import { initializeApp } from 'firebase/app'
-import { getAnalytics } from 'firebase/analytics'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -9,12 +8,13 @@ const firebaseConfig = {
     storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
     appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 }
 
+// Analytics foi removido de propósito: getAnalytics() roda no load do módulo e
+// lançava INVALID_MEASUREMENT_ID sem VITE_FIREBASE_MEASUREMENT_ID, derrubando
+// o app inteiro por uma feature que ninguém consumia. Se for preciso, inicialize
+// sob demanda e dentro de um try/catch.
 const app = initializeApp(firebaseConfig)
-const analytics = getAnalytics(app)
 const db = getFirestore(app)
 
-
-export { app, analytics, db}
+export { app, db }

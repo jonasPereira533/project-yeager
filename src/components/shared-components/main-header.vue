@@ -73,9 +73,6 @@ header {
   color: var(--ink-muted);
   font-weight: 600;
 }
-.xp-level {
-  color: var(--ink-muted);
-}
 .login-link {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.85rem;

@@ -70,7 +70,7 @@ export const yeagerHighlightStyle = HighlightStyle.define([
   { tag: t.number, color: "#c9a876" },
   { tag: t.bool, color: "#c9a876" },
   { tag: t.null, color: "#c9a876" },
-  { tag: t.comment, color: "#5b6472", fontStyle: "italic" },
+  { tag: t.comment, color: "var(--ink-muted)", fontStyle: "italic" },
   { tag: t.operator, color: "var(--ink-muted)" },
   { tag: t.punctuation, color: "var(--ink-muted)" },
   { tag: t.typeName, color: "var(--teal)" },

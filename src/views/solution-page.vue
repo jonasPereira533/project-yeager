@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, shallowRef } from "vue";
+import { computed, onMounted, onUnmounted, ref, shallowRef } from "vue";
 import type { Database } from "sql.js";
 import ObjectiveList from "../components/solution-page-components/objective-list.vue";
 import SchemaPanel from "../components/solution-page-components/schema-panel.vue";
@@ -18,7 +18,7 @@ import {
   toQueryResult,
 } from "../utils/compare-results";
 import type { Feedback, QueryResult, SchemaTable } from "../types/case";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 import CaseRules from "../components/solution-page-components/case-rules.vue";
 
 const { createDatabase } = useSqlEngine();
@@ -33,6 +33,11 @@ const result = ref<QueryResult | null>(null);
 const hasRun = ref(false);
 const feedback = ref<Feedback>({ type: "none", message: "" });
 const engineError = ref("");
+
+// Geração do contexto de execução. Incrementada a cada consulta e a cada troca
+// de caso/objetivo: um resultado que resolve depois da tela ter mudado é
+// descartado em vez de carimmar o objetivo que está visível.
+let runSeq = 0;
 
 const activeCase = computed(
   () => CASES.find((c) => c.id === activeCaseId.value)!,
@@ -69,16 +74,6 @@ if (caseIdFromQuery && CASES.some((c) => c.id === caseIdFromQuery)) {
   activeCaseId.value = caseIdFromQuery;
 }
 
-const router = useRouter();
-
-const goToMainPage = () => {
-  router.push({ name: "main-page" });
-};
-
-const goToCasePage = () => {
-  router.push({ name: "case-page" });
-};
-
 const TABS = [
   { id: "ficha", label: "Ficha do Caso" },
   { id: "investigacao", label: "Investigação" },
@@ -86,18 +81,31 @@ const TABS = [
 const activeTab = ref<"ficha" | "investigacao">("ficha");
 
 async function loadCase(caseId: string) {
+  const seq = ++runSeq;
   activeCaseId.value = caseId;
   const c = activeCase.value;
 
+  let nextDb: Database | undefined;
   try {
-    db.value = await createDatabase(c.setupSQL);
-    schema.value = readSchema(db.value);
+    nextDb = await createDatabase(c.setupSQL);
+    schema.value = readSchema(nextDb);
   } catch {
-    engineError.value =
-      "Não foi possível carregar o motor SQLite (sql.js). Verifique a conexão de rede.";
+    nextDb?.close();
+    if (seq === runSeq) {
+      engineError.value =
+        "Não foi possível carregar o motor SQLite (sql.js). Verifique a conexão de rede.";
+    }
     return;
   }
 
+  // O caso trocou enquanto o banco carregava: este não é mais o contexto atual.
+  if (!nextDb || seq !== runSeq) {
+    nextDb?.close();
+    return;
+  }
+
+  db.value?.close();
+  db.value = nextDb;
   queryText.value = "";
   result.value = null;
   hasRun.value = false;
@@ -106,6 +114,7 @@ async function loadCase(caseId: string) {
 }
 
 function selectObjective(objectiveId: string) {
+  runSeq++;
   activeObjectiveId.value = objectiveId;
   feedback.value = { type: "none", message: "" };
 }
@@ -114,6 +123,12 @@ async function runQuery() {
   const database = db.value;
   const sql = queryText.value.trim();
   if (!database || !sql) return;
+
+  // Captura o contexto antes de qualquer await: caso e objetivo precisam ser
+  // lidos do mesmo instante, senão um markSolved pode gravar no caso errado.
+  const seq = ++runSeq;
+  const caseId = activeCaseId.value;
+  const objective = activeObjective.value;
 
   hasRun.value = true;
 
@@ -133,7 +148,6 @@ async function runQuery() {
 
   result.value = toQueryResult(execResult);
 
-  const objective = activeObjective.value;
   if (!objective) {
     feedback.value = { type: "none", message: "" };
     return;
@@ -149,30 +163,52 @@ async function runQuery() {
 
   const userRows = normalizeExecResult(execResult);
   const refRows = normalizeExecResult(refExecResult);
-  const matches = rowSetsMatch(userRows, refRows);
 
-  if (matches) {
-    const wasNew = await markSolved(activeCaseId.value, objective.id);
+  if (!rowSetsMatch(userRows, refRows)) {
+    feedback.value = { type: "open", message: "AINDA EM ABERTO" };
+    return;
+  }
+
+  const outcome = await markSolved(caseId, objective.id);
+
+  // O usuário trocou de caso/objetivo (ou disparou outra consulta) enquanto o
+  // Firestore resolvia. O XP foi salvo no contexto correto, mas o carimbo
+  // pertence à execução anterior — selectObjective/loadCase já limparam a tela.
+  if (seq !== runSeq) return;
+
+  if (outcome === "error") {
     feedback.value = {
-      type: "solved",
-      message: wasNew
+      type: "error",
+      message:
+        "Consulta correta, mas não foi possível salvar seu progresso. Verifique sua conexão.",
+    };
+    return;
+  }
+
+  feedback.value = {
+    type: "solved",
+    message:
+      outcome === "new"
         ? `CHAMADO ENCERRADO · +${objective.xp} XP`
         : "JÁ RESOLVIDO",
-    };
-  } else {
-    feedback.value = { type: "open", message: "AINDA EM ABERTO" };
-  }
+  };
 }
 
 onMounted(() => {
   loadCase(activeCaseId.value);
+});
+
+onUnmounted(() => {
+  // A memória do banco vive no WASM e não é coletada pelo GC.
+  db.value?.close();
+  db.value = null;
 });
 </script>
 
 <template>
   <div v-if="!activeCase" class="not-found">
     <p>Caso não encontrado.</p>
-    <a @click="goToMainPage">← Voltar pra lista de casos</a>
+    <RouterLink :to="{ name: 'main-page' }">← Voltar pra lista de casos</RouterLink>
   </div>
 
   <div v-else class="solution-page">
@@ -182,19 +218,35 @@ onMounted(() => {
         <h1>{{ activeCase.title }}</h1>
         <span class="nivel">{{ activeCase.level }}</span>
       </div>
-      <a @click="goToCasePage">← Voltar pra lista de casos</a>
+      <RouterLink :to="{ name: 'case-page' }"
+        >← Voltar pra lista de casos</RouterLink
+      >
     </div>
 
     <p v-if="engineError" class="engine-error">{{ engineError }}</p>
     <template v-else>
       <CaseTabs v-model="activeTab" :tabs="TABS" />
 
-      <section v-show="activeTab === 'ficha'" class="desk">
+      <section
+        v-show="activeTab === 'ficha'"
+        id="panel-ficha"
+        class="desk"
+        role="tabpanel"
+        aria-labelledby="tab-ficha"
+        tabindex="0"
+      >
         <DossierBriefing :active-case="activeCase" />
         <CaseRules />
       </section>
 
-      <section v-show="activeTab === 'investigacao'" class="desk">
+      <section
+        v-show="activeTab === 'investigacao'"
+        id="panel-investigacao"
+        class="desk"
+        role="tabpanel"
+        aria-labelledby="tab-investigacao"
+        tabindex="0"
+      >
         <div class="investigacao-grid">
           <aside>
             <ObjectiveList
@@ -205,7 +257,7 @@ onMounted(() => {
             <SchemaPanel :tables="schema" />
           </aside>
 
-          <main>
+          <div class="investigation-main">
             <QuestionPanel
               :objective="activeObjective"
               :case-id="activeCaseId"
@@ -213,7 +265,7 @@ onMounted(() => {
             <SqlEditor v-model="queryText" :schema="schema" @run="runQuery" />
             <FeedbackStamp :feedback="feedback" />
             <ResultsTable :result="result" :has-run="hasRun" />
-          </main>
+          </div>
         </div>
       </section>
     </template>
