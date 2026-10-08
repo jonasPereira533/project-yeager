@@ -7,14 +7,21 @@ defineProps<{
 </script>
 
 <template>
-  <div v-if="feedback.type === 'error'" class="feedback-error">
-    {{ feedback.message }}
-  </div>
-  <div v-else-if="feedback.type === 'solved'" class="feedback-stamp solved">
-    {{ feedback.message }}
-  </div>
-  <div v-else-if="feedback.type === 'open'" class="feedback-stamp open">
-    {{ feedback.message }}
+  <div
+    class="feedback-live"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  >
+    <div v-if="feedback.type === 'error'" class="feedback-error">
+      {{ feedback.message }}
+    </div>
+    <div v-else-if="feedback.type === 'solved'" class="feedback-stamp solved">
+      {{ feedback.message }}
+    </div>
+    <div v-else-if="feedback.type === 'open'" class="feedback-stamp open">
+      {{ feedback.message }}
+    </div>
   </div>
 </template>
 

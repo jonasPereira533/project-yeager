@@ -1,19 +1,16 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { CASES } from "../../data/cases";
-import type { Case } from "../../types/case";
-import { useRouter } from "vue-router";
+import { CASE_LEVELS, type Case, type CaseLevel } from "../../types/case";
 import { useProgress } from "../../composables/use-progress";
 
-const router = useRouter();
 const { countSolved } = useProgress();
 
-
-const LEVEL_ORDER = ["Iniciante", "Intermediário", "Avançado"] as const;
+const LEVEL_ORDER = CASE_LEVELS;
 
 const LEVEL_META: Record<
-    (typeof LEVEL_ORDER)[number],
-    { colorClass: string; description: string }
+  CaseLevel,
+  { colorClass: string; description: string }
 > = {
   Iniciante: {
     colorClass: "low",
@@ -30,19 +27,19 @@ const LEVEL_META: Record<
 };
 
 interface CaseGroup {
-  level: string;
+  level: CaseLevel;
   colorClass: string;
   description: string;
   cases: Case[];
 }
 
 const groupedCases = computed<CaseGroup[]>(() =>
-    LEVEL_ORDER.map((level) => ({
-      level,
-      colorClass: LEVEL_META[level].colorClass,
-      description: LEVEL_META[level].description,
-      cases: CASES.filter((c) => c.level === level),
-    })).filter((group) => group.cases.length > 0),
+  LEVEL_ORDER.map((level) => ({
+    level,
+    colorClass: LEVEL_META[level].colorClass,
+    description: LEVEL_META[level].description,
+    cases: CASES.filter((c) => c.level === level),
+  })).filter((group) => group.cases.length > 0),
 );
 
 function totalXp(caseItem: Case): number {
@@ -52,10 +49,6 @@ function totalXp(caseItem: Case): number {
 function isCaseSolved(caseItem: Case): boolean {
   return countSolved(caseItem.id) === caseItem.objectives.length;
 }
-
-const goToSolutionPage = (caseId: string) => {
-  router.push({ name: "solution-page", query: { caseId } });
-};
 </script>
 
 <template>
@@ -73,21 +66,22 @@ const goToSolutionPage = (caseId: string) => {
       </div>
 
       <div class="case-grid">
-        <div
-            v-for="caseItem in group.cases"
-            :key="caseItem.id"
-            :class="[
+        <RouterLink
+          v-for="caseItem in group.cases"
+          :key="caseItem.id"
+          :class="[
             'case-card',
             group.colorClass,
             { solved: isCaseSolved(caseItem) },
           ]"
-            tabindex="0"
-            @click="goToSolutionPage(caseItem.id)"
-            @keydown.enter="goToSolutionPage(caseItem.id)"
+          :to="{ name: 'solution-page', query: { caseId: caseItem.id } }"
         >
           <div class="case-card-top">
             <span class="case-number">
               <span v-if="isCaseSolved(caseItem)" class="check">✔</span>
+              <span v-if="isCaseSolved(caseItem)" class="sr-only"
+                >Resolvido</span
+              >
               Nº {{ caseItem.caseNumber }}
             </span>
             <span class="case-xp">{{ totalXp(caseItem) }} XP</span>
@@ -98,10 +92,10 @@ const goToSolutionPage = (caseId: string) => {
           <div class="case-card-footer">
             <span class="case-tables">Tabelas: {{ caseItem.tables }}</span>
             <span class="case-objectives"
-            >{{ caseItem.objectives.length }} objetivos</span
+              >{{ caseItem.objectives.length }} objetivos</span
             >
           </div>
-        </div>
+        </RouterLink>
       </div>
     </div>
   </section>
@@ -127,11 +121,6 @@ const goToSolutionPage = (caseId: string) => {
   font-family: "Special Elite", monospace;
   font-size: 2rem;
   margin: 0.6rem 0 0.8rem;
-}
-.subtitle {
-  font-size: 0.95rem;
-  color: var(--ink-muted);
-  margin: 0;
 }
 
 .level-group {
@@ -184,11 +173,13 @@ const goToSolutionPage = (caseId: string) => {
   border-radius: 4px;
   padding: 1.2rem 1.3rem;
   cursor: pointer;
+  color: inherit;
+  text-decoration: none;
   transition:
-      border-color 0.2s,
-      background 0.2s,
-      transform 0.15s,
-      opacity 0.2s;
+    border-color 0.2s,
+    background 0.2s,
+    transform 0.15s,
+    opacity 0.2s;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

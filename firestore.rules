@@ -2,15 +2,80 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function validCaseIds() {
+      return [
+        'clientes-bloqueados',
+        'estoque-abaixo-minimo',
+        'motivos-cancelamento',
+        'vendas-nao-efetivadas',
+        'itens-fora-preco-tabela',
+        'caixas-sem-fechamento',
+        'compradores-unicos-alto-valor',
+        'produtos-vendidos-prejuizo',
+        'ranking-vendedores-filial'
+      ];
+    }
+
+    function validObjectiveIds() {
+      return ['o1', 'o2', 'o3'];
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function hasOnlyProgressFields() {
+      return request.resource.data.keys().hasOnly(
+        ['solvedByCase', 'hintsUsedByCase']
+      );
+    }
+
+    function isValidProgressMap(data) {
+      return data is map
+        && data.keys().hasOnly(validCaseIds())
+        && data.values().all(objectiveList,
+             objectiveList is list
+             && objectiveList.size() <= validObjectiveIds().size()
+             && objectiveList.all(objectiveId, objectiveId in validObjectiveIds())
+           );
+    }
+
+    function isValidProgressField(name) {
+      return !(name in request.resource.data) || isValidProgressMap(request.resource.data[name]);
+    }
+
+    function isMonotonic(field) {
+      return !resource.data[field].exists()
+        || (
+             request.resource.data[field].keys().hasAll(resource.data[field].keys())
+             && request.resource.data[field].keys().all(caseId,
+                  !resource.data[field].keys().hasAny([caseId])
+                  || request.resource.data[field][caseId].hasAll(
+                       resource.data[field][caseId]
+                     )
+               )
+           );
+    }
 
     match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
+      allow read: if isOwner(userId);
+      allow delete: if false;
 
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.data.keys().hasOnly(['solvedByCase', 'hintsUsedByCase'])
-                   && (!('solvedByCase' in request.resource.data) || request.resource.data.solvedByCase is map)
-                   && (!('hintsUsedByCase' in request.resource.data) || request.resource.data.hintsUsedByCase is map);
+      allow create: if isOwner(userId)
+        && hasOnlyProgressFields()
+        && isValidProgressField('solvedByCase')
+        && isValidProgressField('hintsUsedByCase');
+
+      allow update: if isOwner(userId)
+        && hasOnlyProgressFields()
+        && isValidProgressField('solvedByCase')
+        && isValidProgressField('hintsUsedByCase')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+             ['solvedByCase', 'hintsUsedByCase']
+           )
+        && request.resource.data.diff(resource.data).affectedKeys().all(field,
+             isMonotonic(field)
+           );
     }
 
     match /{document=**} {

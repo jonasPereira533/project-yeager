@@ -51,6 +51,6 @@ defineProps<{
   color: var(--ink-muted);
 }
 .field span:last-child {
-  color: #5b6472;
+  color: var(--ink-muted);
 }
 </style>

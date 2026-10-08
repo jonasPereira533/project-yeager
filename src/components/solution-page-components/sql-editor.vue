@@ -6,6 +6,7 @@ import { useSqlCodeMirror } from "../../composables/use-sql-codemirror";
 const props = defineProps<{
   modelValue: string;
   schema: SchemaTable[];
+  running?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -15,10 +16,14 @@ const emit = defineEmits<{
 
 const editorContainer = ref<HTMLElement | null>(null);
 
+const EDITOR_LABEL_ID = "sql-editor-label";
+
 const { setValue } = useSqlCodeMirror({
   container: editorContainer,
   initialValue: props.modelValue,
   schema: toRef(props, "schema"),
+  labelId: EDITOR_LABEL_ID,
+  isRunning: () => props.running ?? false,
   onChange: (value) => emit("update:modelValue", value),
   onRun: () => emit("run"),
 });
@@ -31,11 +36,17 @@ watch(
 
 <template>
   <div>
-    <label class="editor-label">Sua consulta</label>
+    <span :id="EDITOR_LABEL_ID" class="editor-label">Sua consulta</span>
     <div ref="editorContainer" class="editor-host" />
     <div class="editor-actions">
-      <button class="run-btn" type="button" @click="emit('run')">
-        Investigar ▶
+      <button
+        class="run-btn"
+        type="button"
+        :disabled="running"
+        :aria-busy="running"
+        @click="emit('run')"
+      >
+        {{ running ? "Consultando…" : "Investigar ▶" }}
       </button>
       <span class="run-hint"
         >Ctrl/Cmd + Enter também executa · Tab indenta</span
@@ -69,16 +80,27 @@ watch(
   border-radius: 0.125rem;
   cursor: pointer;
   border: 0.063rem solid transparent;
-  background: var(--amber);
   color: #1a1305;
+  background: var(--bg);
+}
+
+.run-btn {
+  border-color: var(--rule);
+  color: var(--ink-muted);
+  font-family: "IBM Plex Mono", monospace;
 }
 .run-btn:hover {
-  background: #f0ae4d;
+  border-color: var(--ink-muted);
+}
+.run-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
 }
 .run-btn:focus-visible {
-  outline: 0.125rem solid var(--amber);
-  outline-offset: 0.125rem;
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
 }
+
 .run-hint {
   font-family: var(--font-mono);
   font-size: 0.75rem;

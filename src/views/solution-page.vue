@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, shallowRef } from "vue";
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
 import type { Database } from "sql.js";
 import ObjectiveList from "../components/solution-page-components/objective-list.vue";
 import SchemaPanel from "../components/solution-page-components/schema-panel.vue";
@@ -7,8 +7,9 @@ import DossierBriefing from "../components/solution-page-components/dossier-brie
 import QuestionPanel from "../components/solution-page-components/question-panel.vue";
 import SqlEditor from "../components/solution-page-components/sql-editor.vue";
 import FeedbackStamp from "../components/solution-page-components/feedback-stamp.vue";
+import CaseCompleteModal from "../components/solution-page-components/case-complete-modal.vue";
 import ResultsTable from "../components/solution-page-components/results-table.vue";
-import AppFooter from "../components/solution-page-components/main-footer.vue";
+import CaseTabs from "../components/solution-page-components/case-tabs.vue";
 import { CASES } from "../data/cases";
 import { useSqlEngine } from "../composables/use-sql-engine";
 import { useProgress } from "../composables/use-progress";
@@ -17,12 +18,18 @@ import {
   rowSetsMatch,
   toQueryResult,
 } from "../utils/compare-results";
-import type { Feedback, QueryResult, SchemaTable } from "../types/case";
-import MainHeader from "../components/shared-components/main-header.vue";
+import type {
+  Case,
+  Feedback,
+  Objective,
+  QueryResult,
+  SchemaTable,
+} from "../types/case";
 import { useRoute } from "vue-router";
+import CaseRules from "../components/solution-page-components/case-rules.vue";
 
 const { createDatabase } = useSqlEngine();
-const { markSolved } = useProgress();
+const { markSolved, countSolved } = useProgress();
 
 const activeCaseId = ref(CASES[0].id);
 const activeObjectiveId = ref<string | null>(null);
@@ -33,55 +40,126 @@ const result = ref<QueryResult | null>(null);
 const hasRun = ref(false);
 const feedback = ref<Feedback>({ type: "none", message: "" });
 const engineError = ref("");
+const isRunning = ref(false);
 
-const activeCase = computed(
-    () => CASES.find((c) => c.id === activeCaseId.value)!,
+let runSeq = 0;
+
+const activeCase = computed<Case | undefined>(() =>
+  CASES.find((c) => c.id === activeCaseId.value),
 );
 const activeObjective = computed(
-    () =>
-        activeCase.value.objectives.find((o) => o.id === activeObjectiveId.value) ??
-        null,
+  () =>
+    activeCase.value?.objectives.find(
+      (o) => o.id === activeObjectiveId.value,
+    ) ?? null,
 );
+
+let solvedBaseline = 0;
+const showCompleteModal = ref(false);
+
+watch(
+  () => (activeCase.value ? countSolved(activeCase.value.id) : 0),
+  (solved) => {
+    const caseItem = activeCase.value;
+    const total = caseItem?.objectives.length ?? 0;
+    showCompleteModal.value =
+      solvedBaseline < total && solved >= total && total > 0;
+    solvedBaseline = solved;
+  },
+);
+
+const BARE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_$]*$/;
+
+function quoteIdentifier(name: string): string {
+  return `"${name.replace(/"/g, '""')}"`;
+}
 
 function readSchema(database: Database): SchemaTable[] {
   const tablesRes = database.exec(
-      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;",
+    "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;",
   );
   if (!tablesRes.length) return [];
-  return tablesRes[0].values.map((row) => {
-    const tableName = String(row[0]);
-    const info = database.exec(`PRAGMA table_info(${tableName});`);
-    const columns = info.length
+
+  return tablesRes[0].values
+    .map((row) => String(row[0]))
+    .filter((tableName) => !tableName.startsWith("sqlite_"))
+    .map((tableName) => {
+      const quoted = BARE_IDENTIFIER.test(tableName)
+        ? tableName
+        : quoteIdentifier(tableName);
+      const info = database.exec(`PRAGMA table_info(${quoted});`);
+      const columns = info.length
         ? info[0].values.map((col) => ({
-          name: String(col[1]),
-          type: String(col[2]),
-        }))
+            name: String(col[1]),
+            type: String(col[2]),
+          }))
         : [];
-    return { name: tableName, columns };
-  });
+      return { name: tableName, columns };
+    });
 }
 
 const route = useRoute();
 
-const caseIdFromQuery = route.query.caseId as string | undefined;
-
-if (caseIdFromQuery && CASES.some((c) => c.id === caseIdFromQuery)) {
-  activeCaseId.value = caseIdFromQuery;
+function caseIdFromQuery(): string | null {
+  const raw = route.query.caseId;
+  const id = Array.isArray(raw) ? raw[0] : raw;
+  return id && CASES.some((c) => c.id === id) ? id : null;
 }
 
-async function loadCase(caseId: string) {
-  activeCaseId.value = caseId;
-  const c = activeCase.value;
+const initialCaseId = caseIdFromQuery();
+if (initialCaseId) activeCaseId.value = initialCaseId;
 
-  try {
-    db.value = await createDatabase(c.setupSQL);
-    schema.value = readSchema(db.value);
-  } catch {
-    engineError.value =
-        "Não foi possível carregar o motor SQLite (sql.js). Verifique a conexão de rede.";
+watch(caseIdFromQuery, (id) => {
+  if (id && id !== activeCaseId.value) loadCase(id);
+});
+
+const TABS = [
+  { id: "ficha", label: "Ficha do Caso" },
+  { id: "investigacao", label: "Investigação" },
+];
+const activeTab = ref<"ficha" | "investigacao">("ficha");
+
+async function loadCase(caseId: string) {
+  const seq = ++runSeq;
+  activeCaseId.value = caseId;
+  solvedBaseline = countSolved(caseId);
+  showCompleteModal.value = false;
+  engineError.value = "";
+
+  const c = activeCase.value;
+  if (!c) {
+    db.value?.close();
+    db.value = null;
+    schema.value = [];
     return;
   }
 
+  let nextDb: Database | undefined;
+  try {
+    nextDb = await createDatabase(c.setupSQL);
+  } catch (error) {
+    engineError.value =
+      "Não foi possível baixar o motor SQLite (sql.js). Verifique sua conexão.";
+    console.error("Falha ao carregar o motor sql.js:", error);
+    return;
+  }
+
+  try {
+    schema.value = readSchema(nextDb);
+  } catch (error) {
+    nextDb.close();
+    engineError.value = `Falha ao preparar o caso "${c.title}": o esquema do banco não pôde ser lido.`;
+    console.error("Falha ao ler o esquema do caso:", error);
+    return;
+  }
+
+  if (!nextDb || seq !== runSeq) {
+    nextDb?.close();
+    return;
+  }
+
+  db.value?.close();
+  db.value = nextDb;
   queryText.value = "";
   result.value = null;
   hasRun.value = false;
@@ -90,17 +168,39 @@ async function loadCase(caseId: string) {
 }
 
 function selectObjective(objectiveId: string) {
+  runSeq++;
   activeObjectiveId.value = objectiveId;
   feedback.value = { type: "none", message: "" };
 }
 
 async function runQuery() {
+  if (isRunning.value) return;
+
   const database = db.value;
   const sql = queryText.value.trim();
   if (!database || !sql) return;
 
-  hasRun.value = true;
+  const seq = ++runSeq;
+  const caseId = activeCaseId.value;
+  const objective = activeObjective.value;
 
+  hasRun.value = true;
+  isRunning.value = true;
+
+  try {
+    await execute(database, sql, caseId, objective, seq);
+  } finally {
+    if (seq === runSeq) isRunning.value = false;
+  }
+}
+
+async function execute(
+  database: Database,
+  sql: string,
+  caseId: string,
+  objective: Objective | null,
+  seq: number,
+) {
   let execResult;
   try {
     execResult = database.exec(sql);
@@ -109,15 +209,14 @@ async function runQuery() {
     feedback.value = {
       type: "error",
       message:
-          "Erro na consulta: " +
-          (err instanceof Error ? err.message : String(err)),
+        "Erro na consulta: " +
+        (err instanceof Error ? err.message : String(err)),
     };
     return;
   }
 
   result.value = toQueryResult(execResult);
 
-  const objective = activeObjective.value;
   if (!objective) {
     feedback.value = { type: "none", message: "" };
     return;
@@ -133,68 +232,188 @@ async function runQuery() {
 
   const userRows = normalizeExecResult(execResult);
   const refRows = normalizeExecResult(refExecResult);
-  const matches = rowSetsMatch(userRows, refRows);
 
-  if (matches) {
-    const wasNew = await markSolved(activeCaseId.value, objective.id);
-    feedback.value = {
-      type: "solved",
-      message: wasNew
-          ? `CHAMADO ENCERRADO · +${objective.xp} XP`
-          : "JÁ RESOLVIDO",
-    };
-  } else {
+  if (!rowSetsMatch(userRows, refRows)) {
     feedback.value = { type: "open", message: "AINDA EM ABERTO" };
+    return;
   }
+
+  const outcome = await markSolved(caseId, objective.id);
+
+  if (seq !== runSeq) return;
+
+  if (outcome === "error") {
+    feedback.value = {
+      type: "error",
+      message:
+        "Consulta correta, mas não foi possível salvar seu progresso. Verifique sua conexão.",
+    };
+    return;
+  }
+
+  feedback.value = {
+    type: "solved",
+    message:
+      outcome === "new"
+        ? `CHAMADO ENCERRADO · +${objective.xp} XP`
+        : "JÁ RESOLVIDO",
+  };
 }
 
 onMounted(() => {
   loadCase(activeCaseId.value);
 });
+
+onUnmounted(() => {
+  db.value?.close();
+  db.value = null;
+});
 </script>
 
 <template>
-  <p v-if="engineError" class="engine-error">{{ engineError }}</p>
+  <div v-if="!activeCase" class="not-found">
+    <p>Caso não encontrado.</p>
+    <RouterLink :to="{ name: 'main-page' }"
+      >← Voltar pra lista de casos</RouterLink
+    >
+  </div>
 
-  <template v-else>
-    <MainHeader />
+  <div v-else class="solution-page">
+    <div class="case-header">
+      <div class="case-info">
+        <span class="num">Nº {{ activeCase.caseNumber }}</span>
+        <h1>{{ activeCase.title }}</h1>
+        <span class="nivel">{{ activeCase.level }}</span>
+      </div>
+      <RouterLink :to="{ name: 'case-page' }"
+        >← Voltar pra lista de casos</RouterLink
+      >
+    </div>
 
-    <section class="desk">
-      <aside>
-        <ObjectiveList
-            :active-case="activeCase"
-            :active-objective-id="activeObjectiveId"
-            @select="selectObjective"
-        />
-        <SchemaPanel :tables="schema" />
-      </aside>
+    <p v-if="engineError" class="engine-error">{{ engineError }}</p>
+    <template v-else>
+      <CaseTabs v-model="activeTab" :tabs="TABS" />
 
-      <main>
+      <section
+        v-show="activeTab === 'ficha'"
+        id="panel-ficha"
+        class="desk"
+        role="tabpanel"
+        aria-labelledby="tab-ficha"
+        tabindex="0"
+      >
         <DossierBriefing :active-case="activeCase" />
-        <QuestionPanel :objective="activeObjective" :case-id="activeCaseId" />
-        <SqlEditor v-model="queryText" :schema="schema" @run="runQuery" />
-        <FeedbackStamp :feedback="feedback" />
-        <ResultsTable :result="result" :has-run="hasRun" />
-      </main>
-    </section>
-  </template>
+        <CaseRules />
+      </section>
 
-  <AppFooter />
+      <section
+        v-show="activeTab === 'investigacao'"
+        id="panel-investigacao"
+        class="desk"
+        role="tabpanel"
+        aria-labelledby="tab-investigacao"
+        tabindex="0"
+      >
+        <div class="investigacao-grid">
+          <aside>
+            <ObjectiveList
+              :active-case="activeCase"
+              :active-objective-id="activeObjectiveId"
+              @select="selectObjective"
+            />
+            <SchemaPanel :tables="schema" />
+          </aside>
+
+          <div class="investigation-main">
+            <QuestionPanel
+              :objective="activeObjective"
+              :case-id="activeCaseId"
+            />
+            <SqlEditor
+              v-model="queryText"
+              :schema="schema"
+              :running="isRunning"
+              @run="runQuery"
+            />
+            <FeedbackStamp :feedback="feedback" />
+            <ResultsTable :result="result" :has-run="hasRun" />
+          </div>
+        </div>
+      </section>
+    </template>
+
+    <CaseCompleteModal
+      v-if="showCompleteModal && activeCase"
+      :active-case="activeCase"
+      @close="showCompleteModal = false"
+    />
+  </div>
 </template>
 
 <style scoped>
-.desk {
+.solution-page {
+  padding: 2.5rem 5vw 4rem;
+}
+
+.case-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.case-header .case-info {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  margin-bottom: 1.6rem;
+  flex-wrap: wrap;
+}
+.case-header .num {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--amber);
+  border: 1px solid var(--rule);
+  padding: 0.25rem 0.6rem;
+  border-radius: 2px;
+}
+.case-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  margin: 0;
+}
+.case-header .nivel {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.case-header a {
+  color: var(--amber);
+  display: inline-block;
+  cursor: pointer;
+}
+.investigacao-grid {
   display: grid;
-  grid-template-columns: 18.75rem 1fr;
-  gap: 3rem;
-  padding: 3rem 5vw 5rem;
+  grid-template-columns: 300px 1fr;
+  gap: 2.5rem;
   align-items: start;
 }
+
 .engine-error {
   padding: 2rem 5vw;
   color: var(--stamp-red);
   font-family: var(--font-mono);
   font-size: 0.9rem;
+}
+
+.not-found {
+  padding: 4rem 5vw;
+  font-family: var(--font-mono);
+}
+.not-found a {
+  color: var(--amber);
+  display: inline-block;
+  margin-top: 0.8rem;
 }
 
 @media (max-width: 53.75rem) {

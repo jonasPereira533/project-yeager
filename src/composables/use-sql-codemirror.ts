@@ -35,6 +35,8 @@ export interface UseSqlCodeMirrorOptions {
   container: Ref<HTMLElement | null>;
   initialValue: string;
   schema: Ref<SchemaTable[]>;
+  labelId?: string;
+  isRunning?: () => boolean;
   onChange: (value: string) => void;
   onRun: () => void;
 }
@@ -45,11 +47,13 @@ export function useSqlCodeMirror(options: UseSqlCodeMirrorOptions) {
 
   onMounted(() => {
     if (!options.container.value) return;
+    const isRunning = options.isRunning ?? (() => false);
 
     const runKeymap = keymap.of([
       {
         key: "Mod-Enter",
         run: () => {
+          if (isRunning()) return true;
           options.onRun();
           return true;
         },
@@ -68,7 +72,9 @@ export function useSqlCodeMirror(options: UseSqlCodeMirrorOptions) {
         placeholderExtension("-- escreva sua consulta SQL aqui"),
         EditorView.lineWrapping,
         EditorView.contentAttributes.of({
-          "aria-label": "Editor de consulta SQL",
+          ...(options.labelId
+            ? { "aria-labelledby": options.labelId }
+            : { "aria-label": "Editor de consulta SQL" }),
         }),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {

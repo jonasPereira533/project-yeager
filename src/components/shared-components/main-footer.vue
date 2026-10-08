@@ -1,6 +1,4 @@
-<script setup lang="ts">
-
-</script>
+<script setup lang="ts"></script>
 
 <template>
   <footer>
@@ -9,17 +7,17 @@
 </template>
 
 <style scoped>
-footer{
+footer {
   border-top: 1px solid var(--rule);
   background: var(--surface);
   padding: 2rem 5vw 2.5rem;
   text-align: center;
 }
 
-footer p{
-  font-family: 'IBM Plex Mono', monospace;
+footer p {
+  font-family: "IBM Plex Mono", monospace;
   font-size: 0.85rem;
-  line-height: 0.5;
+  line-height: 1.5;
   color: var(--ink-muted);
   margin: 0;
 }

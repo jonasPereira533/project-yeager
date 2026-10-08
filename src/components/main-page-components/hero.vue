@@ -1,94 +1,120 @@
 <script setup lang="ts">
-import { useRouter } from "vue-router";
 import { useAuth } from "../../composables/use-auth";
 
-const router = useRouter();
 const { user } = useAuth();
-
-const goToCases = () => {
-  router.push({ name: "case-page" });
-}
 </script>
 
 <template>
   <section class="hero">
     <div>
       <div class="eyebrow">Treinamento interno — VR Tech</div>
-      <h1>Aprenda SQL<br>resolvendo casos reais.</h1>
-      <p>Yeager transforma o banco de dados da VR Tech em uma investigação. Escolha um caso, escreva a consulta certa e descubra o que os registros têm a esconder.</p>
+      <h1>Aprenda SQL<br />resolvendo casos reais.</h1>
+      <p>
+        Yeager transforma o banco de dados da VR Tech em uma investigação.
+        Escolha um caso, escreva a consulta certa e descubra o que os registros
+        têm a esconder.
+      </p>
       <div class="cta-row">
-        <a href="#" class="btn btn-ghost" @click="goToCases()">Ver Casos</a>
+        <RouterLink :to="{ name: 'case-page' }" class="btn btn-ghost"
+          >Ver Casos</RouterLink
+        >
 
-        <a href="https://github.com/jonasPereira533/project-yeager" target="_blank" class="btn btn-ghost">GitHub</a>
+        <a
+          href="https://github.com/jonasPereira533/project-yeager"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-ghost"
+          >GitHub</a
+        >
       </div>
     </div>
 
-    <!-- Card lateral -->
     <div class="welcome-card">
       <i class="ti ti-hat-cowboy card-icon" aria-hidden="true"></i>
-      <h2 v-if="user">Bem-vindo, Técnico {{ user.displayName?.split(' ')[0] }}</h2>
+      <h2 v-if="user">
+        Bem-vindo, Técnico {{ user.displayName?.split(" ")[0] }}
+      </h2>
       <h2 v-else>Bem-vindo</h2>
-      <p>A fila esta cheia de atendimentos, precisamos de você para resolver.</p>
-      <a href="#" class="btn btn-primary" @click="goToCases()">Resolver casos</a>
+      <p>
+        A fila esta cheia de atendimentos, precisamos de você para resolver.
+      </p>
+      <RouterLink :to="{ name: 'case-page' }" class="btn btn-primary"
+        >Resolver casos</RouterLink
+      >
     </div>
   </section>
 
-  <!-- Como Jogar  -->
   <div class="como-jogar-wrap">
     <a href="#como-jogar" class="como-jogar">↓ Como Jogar ↓</a>
   </div>
-
 </template>
 
 <style scoped>
-.hero{
-  display:grid;
-  grid-template-columns:1.1fr 0.9fr;
-  gap:4rem;
-  padding:9rem 9vw 6rem;
-  align-items:center;
+.hero {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 4rem;
+  padding: 9rem 9vw 6rem;
+  align-items: center;
 }
-.hero h1{
-  font-family:'Special Elite', monospace;
-  font-size:clamp(2rem, 3.6vw, 3.1rem);
-  line-height:1.2;
-  margin:1rem 0 1.4rem;
-  max-width:11ch;
+.hero h1 {
+  font-family: "Special Elite", monospace;
+  font-size: clamp(2rem, 3.6vw, 3.1rem);
+  line-height: 1.2;
+  margin: 1rem 0 1.4rem;
+  max-width: 11ch;
 }
-.hero p{
-  color:var(--ink-muted);
-  font-size:1.05rem;
-  max-width:46ch;
-  margin-bottom:2rem;
+.hero p {
+  color: var(--ink-muted);
+  font-size: 1.05rem;
+  max-width: 46ch;
+  margin-bottom: 2rem;
 }
-.cta-row{ display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
-
-.btn{
-  font-family:'IBM Plex Mono', monospace;
-  font-weight:100;
-  font-size:0.95rem;
-  padding:0.85rem 1.6rem;
-  border-radius:2px;
-  text-decoration:none;
-  display:inline-block;
-  cursor:pointer;
-  border:1px solid transparent;}
-
-.btn-primary{ background:var(--amber); color:#1A1305; font-family: 'IBM Plex Mono', monospace }
-.btn-primary:hover{ background:#f0ae4d; }
-.btn-ghost{ border-color:var(--rule); color:var(--ink-muted); font-family: 'IBM Plex Mono', monospace }
-.btn-ghost:hover{ border-color:var(--ink-muted); }
-
-.eyebrow{
-  font-family:'Special Elite', monospace;
-  font-size:0.78rem;
-  letter-spacing:0.14em;
-  text-transform:uppercase;
-  color:var(--amber);
+.cta-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
 }
 
-/* Card lateral  */
-.welcome-card{
+.btn {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 100;
+  font-size: 0.95rem;
+  padding: 0.85rem 1.6rem;
+  border-radius: 2px;
+  text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background: var(--amber);
+  color: #1a1305;
+  font-family: "IBM Plex Mono", monospace;
+}
+.btn-primary:hover {
+  background: #f0ae4d;
+}
+.btn-ghost {
+  border-color: var(--rule);
+  color: var(--ink-muted);
+  font-family: "IBM Plex Mono", monospace;
+}
+.btn-ghost:hover {
+  border-color: var(--ink-muted);
+}
+
+.eyebrow {
+  font-family: "Special Elite", monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.welcome-card {
   position: relative;
   background: var(--surface);
   border: 1px solid var(--rule);
@@ -101,41 +127,42 @@ const goToCases = () => {
   gap: 0.75rem;
   align-self: center;
 }
-.card-icon{
+.card-icon {
   font-size: 48px;
   color: var(--amber);
   margin-bottom: 0.5rem;
 }
-.welcome-card h2{
-  font-family: 'Special Elite', monospace;
+.welcome-card h2 {
+  font-family: "Special Elite", monospace;
   font-size: 1.4rem;
   color: var(--ink);
   margin: 0;
 }
-.welcome-card p{
+.welcome-card p {
   color: var(--ink-muted);
   font-size: 0.95rem;
   max-width: 32ch;
   margin: 0 0 0.5rem;
 }
 
-/* Como jogar   */
-.como-jogar-wrap{
+.como-jogar-wrap {
   display: flex;
   justify-content: center;
   padding-bottom: 4rem;
 }
-.como-jogar{
+.como-jogar {
   border: 1px solid var(--rule);
   padding: 0.6rem 1.4rem;
   border-radius: 4px;
-  font-family: 'Special Elite', monospace;
+  font-family: "Special Elite", monospace;
   font-size: 0.85rem;
   color: var(--ink-muted);
   text-decoration: none;
-  transition: border-color 0.2s, color 0.2s;
+  transition:
+    border-color 0.2s,
+    color 0.2s;
 }
-.como-jogar:hover{
+.como-jogar:hover {
   border-color: var(--ink-muted);
   color: var(--ink-muted);
 }

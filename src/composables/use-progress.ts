@@ -1,4 +1,4 @@
-import { computed, reactive, watch } from "vue";
+import { computed, effectScope, reactive, watch } from "vue";
 import { doc, setDoc, arrayUnion } from "firebase/firestore";
 import { useCurrentUser, useDocument, useFirestore } from "vuefire";
 import { CASES } from "../data/cases.ts";
@@ -8,54 +8,73 @@ const HINT_PENALTY = 5;
 const guestSolvedByCase = reactive<Record<string, string[]>>({});
 const guestHintsByCase = reactive<Record<string, string[]>>({});
 
-export function useProgress() {
+const pendingSolved = new Set<string>();
+const pendingHints = new Set<string>();
+
+const progressKey = (caseId: string, objectiveId: string) =>
+  `${caseId}:${objectiveId}`;
+
+export type ProgressOutcome = "new" | "duplicate" | "error";
+
+function createProgress() {
   const db = useFirestore();
   const user = useCurrentUser();
 
   const userDocRef = computed(() =>
-      user.value ? doc(db, "users", user.value.uid) : null,
+    user.value ? doc(db, "users", user.value.uid) : null,
   );
 
   const { data: userDoc } = useDocument(userDocRef);
 
-  // Migra o progresso de visitante (resolvidos + dicas usadas) assim que loga
   watch(user, async (newUser, oldUser) => {
     if (oldUser || !newUser) return;
 
     const hasGuestData =
-        Object.keys(guestSolvedByCase).length > 0 ||
-        Object.keys(guestHintsByCase).length > 0;
+      Object.keys(guestSolvedByCase).length > 0 ||
+      Object.keys(guestHintsByCase).length > 0;
     if (!hasGuestData) return;
 
     const solvedUpdates: Record<string, ReturnType<typeof arrayUnion>> = {};
     for (const [caseId, objectiveIds] of Object.entries(guestSolvedByCase)) {
-      solvedUpdates[caseId] = arrayUnion(...objectiveIds);
+      if (objectiveIds.length)
+        solvedUpdates[caseId] = arrayUnion(...objectiveIds);
     }
 
     const hintUpdates: Record<string, ReturnType<typeof arrayUnion>> = {};
     for (const [caseId, objectiveIds] of Object.entries(guestHintsByCase)) {
-      hintUpdates[caseId] = arrayUnion(...objectiveIds);
+      if (objectiveIds.length)
+        hintUpdates[caseId] = arrayUnion(...objectiveIds);
     }
 
-    await setDoc(
+    try {
+      await setDoc(
         doc(db, "users", newUser.uid),
         { solvedByCase: solvedUpdates, hintsUsedByCase: hintUpdates },
         { merge: true },
-    );
+      );
+    } catch (error) {
+      console.error("Falha ao migrar progresso de visitante:", error);
+      return;
+    }
 
-    Object.keys(guestSolvedByCase).forEach((key) => delete guestSolvedByCase[key]);
-    Object.keys(guestHintsByCase).forEach((key) => delete guestHintsByCase[key]);
+    Object.keys(guestSolvedByCase).forEach(
+      (key) => delete guestSolvedByCase[key],
+    );
+    Object.keys(guestHintsByCase).forEach(
+      (key) => delete guestHintsByCase[key],
+    );
   });
 
   const solvedByCase = computed<Record<string, string[]>>(() =>
-      user.value ? (userDoc.value?.solvedByCase ?? {}) : guestSolvedByCase,
+    user.value ? (userDoc.value?.solvedByCase ?? {}) : guestSolvedByCase,
   );
 
   const hintsUsedByCase = computed<Record<string, string[]>>(() =>
-      user.value ? (userDoc.value?.hintsUsedByCase ?? {}) : guestHintsByCase,
+    user.value ? (userDoc.value?.hintsUsedByCase ?? {}) : guestHintsByCase,
   );
 
   function isSolved(caseId: string, objectiveId: string): boolean {
+    if (pendingSolved.has(progressKey(caseId, objectiveId))) return true;
     return (solvedByCase.value[caseId] ?? []).includes(objectiveId);
   }
 
@@ -64,42 +83,66 @@ export function useProgress() {
   }
 
   function isHintUsed(caseId: string, objectiveId: string): boolean {
+    if (pendingHints.has(progressKey(caseId, objectiveId))) return true;
     return (hintsUsedByCase.value[caseId] ?? []).includes(objectiveId);
   }
 
   async function markSolved(
-      caseId: string,
-      objectiveId: string,
-  ): Promise<boolean> {
-    if (isSolved(caseId, objectiveId)) return false;
+    caseId: string,
+    objectiveId: string,
+  ): Promise<ProgressOutcome> {
+    if (isSolved(caseId, objectiveId)) return "duplicate";
 
     if (userDocRef.value) {
-      await setDoc(
+      const pendingKey = progressKey(caseId, objectiveId);
+      pendingSolved.add(pendingKey);
+      try {
+        await setDoc(
           userDocRef.value,
           { solvedByCase: { [caseId]: arrayUnion(objectiveId) } },
           { merge: true },
-      );
-    } else {
-      if (!guestSolvedByCase[caseId]) guestSolvedByCase[caseId] = [];
-      guestSolvedByCase[caseId].push(objectiveId);
+        );
+        return "new";
+      } catch (error) {
+        console.error("Falha ao salvar objetivo resolvido:", error);
+        return "error";
+      } finally {
+        pendingSolved.delete(pendingKey);
+      }
     }
-    return true;
+
+    if (!guestSolvedByCase[caseId]) guestSolvedByCase[caseId] = [];
+    guestSolvedByCase[caseId].push(objectiveId);
+    return "new";
   }
 
-  async function useHint(caseId: string, objectiveId: string): Promise<boolean> {
-    if (isHintUsed(caseId, objectiveId)) return false;
+  async function useHint(
+    caseId: string,
+    objectiveId: string,
+  ): Promise<ProgressOutcome> {
+    if (isHintUsed(caseId, objectiveId)) return "duplicate";
 
     if (userDocRef.value) {
-      await setDoc(
+      const pendingKey = progressKey(caseId, objectiveId);
+      pendingHints.add(pendingKey);
+      try {
+        await setDoc(
           userDocRef.value,
           { hintsUsedByCase: { [caseId]: arrayUnion(objectiveId) } },
           { merge: true },
-      );
-    } else {
-      if (!guestHintsByCase[caseId]) guestHintsByCase[caseId] = [];
-      guestHintsByCase[caseId].push(objectiveId);
+        );
+        return "new";
+      } catch (error) {
+        console.error("Falha ao registrar uso de dica:", error);
+        return "error";
+      } finally {
+        pendingHints.delete(pendingKey);
+      }
     }
-    return true;
+
+    if (!guestHintsByCase[caseId]) guestHintsByCase[caseId] = [];
+    guestHintsByCase[caseId].push(objectiveId);
+    return "new";
   }
 
   const totalXP = computed(() => {
@@ -119,8 +162,6 @@ export function useProgress() {
     return Math.max(0, xp - hintsCount * HINT_PENALTY);
   });
 
-  const level = computed(() => Math.floor(totalXP.value / 50) + 1);
-
   return {
     isSolved,
     countSolved,
@@ -128,6 +169,16 @@ export function useProgress() {
     isHintUsed,
     useHint,
     totalXP,
-    level,
   };
+}
+
+type Progress = ReturnType<typeof createProgress>;
+
+let shared: Progress | null = null;
+
+export function useProgress(): Progress {
+  if (!shared) {
+    shared = effectScope(true).run(createProgress)!;
+  }
+  return shared;
 }
