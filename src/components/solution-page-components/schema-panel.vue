@@ -51,7 +51,6 @@ defineProps<{
   color: var(--ink-muted);
 }
 .field span:last-child {
-  /* Era #5b6472: 2.7:1 sobre --surface, reprovado em WCAG AA. */
   color: var(--ink-muted);
 }
 </style>

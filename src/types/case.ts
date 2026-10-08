@@ -1,6 +1,5 @@
 export type CaseLevel = "Iniciante" | "Intermediário" | "Avançado";
 
-/** Union derivado de CASES — o typecheck acusa um nível novo não mapeado aqui. */
 export const CASE_LEVELS = [
   "Iniciante",
   "Intermediário",

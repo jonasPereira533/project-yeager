@@ -39,7 +39,6 @@ const handleAuthClick = () => {
         {{ pending ? "Aguarde…" : user ? "Sair" : "Entrar" }}
       </button>
     </div>
-    <!-- role="alert" para o erro de login ser anunciado imediatamente. -->
     <p v-if="errorMessage" class="auth-error" role="alert">
       {{ errorMessage }}
     </p>
@@ -51,7 +50,6 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* flex-wrap para o .auth-error ocupar a linha inteira abaixo do conteúdo. */
   flex-wrap: wrap;
   padding: 1.5rem 5vw;
   border-bottom: 1px solid var(--rule);

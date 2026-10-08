@@ -35,9 +35,7 @@ export interface UseSqlCodeMirrorOptions {
   container: Ref<HTMLElement | null>;
   initialValue: string;
   schema: Ref<SchemaTable[]>;
-  /** Id do <label> visível, para ser associado em vez de um aria-label próprio. */
   labelId?: string;
-  /** Enquanto verdadeiro, o atalho de execução é ignorado. */
   isRunning?: () => boolean;
   onChange: (value: string) => void;
   onRun: () => void;
@@ -49,9 +47,6 @@ export function useSqlCodeMirror(options: UseSqlCodeMirrorOptions) {
 
   onMounted(() => {
     if (!options.container.value) return;
-
-    // Enquanto uma consulta roda, o atalho também precisa ser ignorado — sem
-    // isto o botão fica desabilitado mas Ctrl+Enter continua disparando runs.
     const isRunning = options.isRunning ?? (() => false);
 
     const runKeymap = keymap.of([

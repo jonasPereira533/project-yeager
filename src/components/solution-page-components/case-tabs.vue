@@ -16,9 +16,6 @@ function setButtonRef(el: Element | null, index: number) {
   if (el instanceof HTMLButtonElement) buttons.value[index] = el;
 }
 
-// O painel é irmão das abas, então o id é derivado do id da aba e não precisa
-// ser passado pelo pai: <CaseTabs> e os <section role="tabpanel"> compartilham
-// a mesma convenção de id.
 const tabId = (id: string) => `tab-${id}`;
 const panelId = (id: string) => `panel-${id}`;
 

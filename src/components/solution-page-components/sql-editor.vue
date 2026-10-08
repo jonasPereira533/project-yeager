@@ -16,8 +16,6 @@ const emit = defineEmits<{
 
 const editorContainer = ref<HTMLElement | null>(null);
 
-// O CodeMirror não é um elemento labelável, então o <label> visível aponta para
-// o id e o editor o consome via aria-labelledby.
 const EDITOR_LABEL_ID = "sql-editor-label";
 
 const { setValue } = useSqlCodeMirror({

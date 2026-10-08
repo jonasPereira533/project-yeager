@@ -6,12 +6,11 @@ import { useProgress } from "../../composables/use-progress";
 
 const { countSolved } = useProgress();
 
-// CASE_LEVELS é a fonte da verdade dos níveis; a ordem aqui é a de exibição.
 const LEVEL_ORDER = CASE_LEVELS;
 
 const LEVEL_META: Record<
-    CaseLevel,
-    { colorClass: string; description: string }
+  CaseLevel,
+  { colorClass: string; description: string }
 > = {
   Iniciante: {
     colorClass: "low",
@@ -35,12 +34,12 @@ interface CaseGroup {
 }
 
 const groupedCases = computed<CaseGroup[]>(() =>
-    LEVEL_ORDER.map((level) => ({
-      level,
-      colorClass: LEVEL_META[level].colorClass,
-      description: LEVEL_META[level].description,
-      cases: CASES.filter((c) => c.level === level),
-    })).filter((group) => group.cases.length > 0),
+  LEVEL_ORDER.map((level) => ({
+    level,
+    colorClass: LEVEL_META[level].colorClass,
+    description: LEVEL_META[level].description,
+    cases: CASES.filter((c) => c.level === level),
+  })).filter((group) => group.cases.length > 0),
 );
 
 function totalXp(caseItem: Case): number {
@@ -80,7 +79,9 @@ function isCaseSolved(caseItem: Case): boolean {
           <div class="case-card-top">
             <span class="case-number">
               <span v-if="isCaseSolved(caseItem)" class="check">✔</span>
-              <span v-if="isCaseSolved(caseItem)" class="sr-only">Resolvido</span>
+              <span v-if="isCaseSolved(caseItem)" class="sr-only"
+                >Resolvido</span
+              >
               Nº {{ caseItem.caseNumber }}
             </span>
             <span class="case-xp">{{ totalXp(caseItem) }} XP</span>
@@ -91,7 +92,7 @@ function isCaseSolved(caseItem: Case): boolean {
           <div class="case-card-footer">
             <span class="case-tables">Tabelas: {{ caseItem.tables }}</span>
             <span class="case-objectives"
-            >{{ caseItem.objectives.length }} objetivos</span
+              >{{ caseItem.objectives.length }} objetivos</span
             >
           </div>
         </RouterLink>
@@ -175,10 +176,10 @@ function isCaseSolved(caseItem: Case): boolean {
   color: inherit;
   text-decoration: none;
   transition:
-      border-color 0.2s,
-      background 0.2s,
-      transform 0.15s,
-      opacity 0.2s;
+    border-color 0.2s,
+    background 0.2s,
+    transform 0.15s,
+    opacity 0.2s;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

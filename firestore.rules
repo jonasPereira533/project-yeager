@@ -2,16 +2,6 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ---------------------------------------------------------------------
-    // Objetivo resolvido, derivado de src/data/cases.ts: 9 casos, 3 objetivos
-    // cada (o1, o2, o3).
-    //
-    // Ao adicionar ou remover um caso em cases.ts, atualize esta lista junto.
-    // Estas regras são a barreira real contra XP auto-declarado: sem elas o
-    // totalXP é computado no cliente a partir de um documento que o próprio
-    // usuário escreve, então qualquer setDoc inventa objetivo à vontade.
-    // ---------------------------------------------------------------------
     function validCaseIds() {
       return [
         'clientes-bloqueados',
@@ -40,11 +30,6 @@ service cloud.firestore {
       );
     }
 
-    // Mapa caseId -> lista de objectiveId, com toda chave e todo valor
-    // pertencentes às listas acima.
-    //
-    // values() devolve as LISTAS (não os ids de caso), então o predicado
-    // trabalha sobre cada lista diretamente.
     function isValidProgressMap(data) {
       return data is map
         && data.keys().hasOnly(validCaseIds())
@@ -59,10 +44,6 @@ service cloud.firestore {
       return !(name in request.resource.data) || isValidProgressMap(request.resource.data[name]);
     }
 
-    // Nenhum objetivo já registrado pode sumir. Sem isto, apagar um item e
-    // reenviá-lo depois removeria a penalidade de dica e permitiria manipular o
-    // placar. Só é verificado para cases que já existiam antes: um case novo
-    // não tem valor antigo para comparar.
     function isMonotonic(field) {
       return !resource.data[field].exists()
         || (

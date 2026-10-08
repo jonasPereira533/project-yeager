@@ -4,7 +4,6 @@
   box-sizing: border-box;
 }
 
-/* Escondido visualmente, mas ainda lido por leitores de tela. */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -17,7 +16,6 @@
   border: 0;
 }
 
-/* Só aparece quando a navegação por teclado chega nele. */
 .skip-link {
   position: absolute;
   left: 0.5rem;
@@ -49,11 +47,6 @@ body {
   overflow-x: hidden;
 }
 
-/*
- * Tema fixo: o Yeager é escuro por design, então não há bloco
- * prefers-color-scheme aqui. Os tokens abaixo definem tudo o que os
- * componentes consomem.
- */
 :root {
   --bg: #14171c;
   --surface: #1b2028;

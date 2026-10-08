@@ -14,15 +14,15 @@ const showHint = ref(false);
 const hintNotice = ref("");
 
 watch(
-    () => props.objective?.id,
-    () => {
-      showHint.value = false;
-      hintNotice.value = "";
-    },
+  () => props.objective?.id,
+  () => {
+    showHint.value = false;
+    hintNotice.value = "";
+  },
 );
 
 const hintAlreadyUsed = computed(() =>
-    props.objective ? isHintUsed(props.caseId, props.objective.id) : false,
+  props.objective ? isHintUsed(props.caseId, props.objective.id) : false,
 );
 
 async function toggleHint() {
@@ -37,8 +37,6 @@ async function toggleHint() {
   if (willShow && !isHintUsed(caseId, objectiveId)) {
     const outcome = await useHint(caseId, objectiveId);
 
-    // Se o objetivo mudou enquanto o Firestore resolvia, a dica visível agora é
-    // de outro objetivo e a cobrança foi para o anterior: não abre de graça.
     if (props.objective?.id !== objectiveId) return;
 
     if (outcome === "error") {
@@ -55,17 +53,13 @@ async function toggleHint() {
   <div v-if="objective" class="question-block">
     <div class="question-head">
       <p>{{ objective.question }}</p>
-      <button
-          class="btn btn-ghost btn-sm"
-          type="button"
-          @click="toggleHint"
-      >
+      <button class="btn btn-ghost btn-sm" type="button" @click="toggleHint">
         {{
           showHint
-              ? "Esconder dica"
-              : hintAlreadyUsed
-                  ? "Mostrar dica"
-                  : "Mostrar dica (-5 XP)"
+            ? "Esconder dica"
+            : hintAlreadyUsed
+              ? "Mostrar dica"
+              : "Mostrar dica (-5 XP)"
         }}
       </button>
     </div>

@@ -8,16 +8,10 @@ defineProps<{
 
 const CAPTION_ID = "results-caption";
 
-/**
- * sql.js devolve nomes de coluna crus, que podem se repetir
- * (SELECT c.Codigo, p.Codigo FROM ...). O índice entra na key para o Vue não
- * acusar chaves duplicadas no cabeçalho.
- */
 function cellKey(columnIndex: number, column: string): string {
   return `${columnIndex}:${column}`;
 }
 
-/** Distingue um NULL real da string 'NULL', e evita BLOB virando lista de bytes. */
 function formatCell(value: unknown): string {
   if (value === null) return "NULL";
   if (value instanceof Uint8Array) {
@@ -50,10 +44,7 @@ function formatCell(value: unknown): string {
       <tbody>
         <tr v-for="(row, i) in result.values" :key="i">
           <td v-for="(cell, j) in row" :key="j">
-            <span
-              v-if="cell === null"
-              class="null"
-              title="Valor NULO no banco"
+            <span v-if="cell === null" class="null" title="Valor NULO no banco"
               >NULL</span
             >
             <template v-else>{{ formatCell(cell) }}</template>
@@ -90,7 +81,6 @@ function formatCell(value: unknown): string {
   border-bottom: 0.063rem dashed var(--rule);
   color: var(--ink);
 }
-/* NULL do banco é itálico e esmaecido, para não se confundir com a string. */
 .results-table td .null {
   font-style: italic;
   color: var(--ink-muted);

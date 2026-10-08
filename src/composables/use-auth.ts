@@ -9,22 +9,9 @@ import { useCurrentUser } from "vuefire";
 
 export type AuthErrorKind = "popup-closed" | "network" | "unknown";
 
-/**
- * Estado da autenticação.
- *
- * Fica no módulo porque o botão de login é exibido em componentes diferentes
- * (header e hero) e ambos precisam desabilitar durante o popup e mostrar o mesmo
- * erro. Com estado por componente, um duplo clique abriria dois popups.
- */
 const pending = ref(false);
 const errorKind = ref<AuthErrorKind | null>(null);
 const errorMessage = ref("");
-
-/**
- * popup-closed  o usuário fechou a janela do Google sem querer — não é erro.
- * network       falha de rede / popup bloqueado pelo navegador.
- * unknown       qualquer outra coisa (config, conta desativada, etc).
- */
 function classify(error: unknown): AuthErrorKind {
   const code = (error as { code?: string } | null)?.code ?? "";
 
@@ -50,7 +37,6 @@ export function useAuth() {
   const provider = new GoogleAuthProvider();
 
   async function loginWithGoogle() {
-    // Guarda contra duplo clique: sem isto, dois signInWithPopup paralelos.
     if (pending.value) return;
 
     pending.value = true;
@@ -63,8 +49,6 @@ export function useAuth() {
       const kind = classify(error);
       errorKind.value = kind;
 
-      // Fechar o popup é uma escolha do usuário, não uma falha: mostrar erro
-      // aqui seria ruído. Ainda registramos no console para diagnóstico.
       if (kind === "popup-closed") {
         console.info("Login cancelado: popup do Google fechado.");
       } else {
@@ -91,7 +75,8 @@ export function useAuth() {
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
       errorKind.value = "unknown";
-      errorMessage.value = "Não foi possível encerrar a sessão. Tente novamente.";
+      errorMessage.value =
+        "Não foi possível encerrar a sessão. Tente novamente.";
     } finally {
       pending.value = false;
     }

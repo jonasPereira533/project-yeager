@@ -8,14 +8,11 @@ const HINT_PENALTY = 5;
 const guestSolvedByCase = reactive<Record<string, string[]>>({});
 const guestHintsByCase = reactive<Record<string, string[]>>({});
 
-// IDs já enviados ao Firestore que ainda não voltaram no snapshot. Sem isto a
-// guarda em markSolved/useHint é lida de um snapshot defasado e dois cliques
-// rápidos creditam o mesmo objetivo em dobro.
 const pendingSolved = new Set<string>();
 const pendingHints = new Set<string>();
 
 const progressKey = (caseId: string, objectiveId: string) =>
-    `${caseId}:${objectiveId}`;
+  `${caseId}:${objectiveId}`;
 
 export type ProgressOutcome = "new" | "duplicate" | "error";
 
@@ -24,52 +21,56 @@ function createProgress() {
   const user = useCurrentUser();
 
   const userDocRef = computed(() =>
-      user.value ? doc(db, "users", user.value.uid) : null,
+    user.value ? doc(db, "users", user.value.uid) : null,
   );
 
   const { data: userDoc } = useDocument(userDocRef);
 
-  // Migra o progresso de visitante (resolvidos + dicas usadas) assim que loga
   watch(user, async (newUser, oldUser) => {
     if (oldUser || !newUser) return;
 
     const hasGuestData =
-        Object.keys(guestSolvedByCase).length > 0 ||
-        Object.keys(guestHintsByCase).length > 0;
+      Object.keys(guestSolvedByCase).length > 0 ||
+      Object.keys(guestHintsByCase).length > 0;
     if (!hasGuestData) return;
 
     const solvedUpdates: Record<string, ReturnType<typeof arrayUnion>> = {};
     for (const [caseId, objectiveIds] of Object.entries(guestSolvedByCase)) {
-      if (objectiveIds.length) solvedUpdates[caseId] = arrayUnion(...objectiveIds);
+      if (objectiveIds.length)
+        solvedUpdates[caseId] = arrayUnion(...objectiveIds);
     }
 
     const hintUpdates: Record<string, ReturnType<typeof arrayUnion>> = {};
     for (const [caseId, objectiveIds] of Object.entries(guestHintsByCase)) {
-      if (objectiveIds.length) hintUpdates[caseId] = arrayUnion(...objectiveIds);
+      if (objectiveIds.length)
+        hintUpdates[caseId] = arrayUnion(...objectiveIds);
     }
 
     try {
       await setDoc(
-          doc(db, "users", newUser.uid),
-          { solvedByCase: solvedUpdates, hintsUsedByCase: hintUpdates },
-          { merge: true },
+        doc(db, "users", newUser.uid),
+        { solvedByCase: solvedUpdates, hintsUsedByCase: hintUpdates },
+        { merge: true },
       );
     } catch (error) {
-      // Preserva os dados de visitante para uma tentativa posterior.
       console.error("Falha ao migrar progresso de visitante:", error);
       return;
     }
 
-    Object.keys(guestSolvedByCase).forEach((key) => delete guestSolvedByCase[key]);
-    Object.keys(guestHintsByCase).forEach((key) => delete guestHintsByCase[key]);
+    Object.keys(guestSolvedByCase).forEach(
+      (key) => delete guestSolvedByCase[key],
+    );
+    Object.keys(guestHintsByCase).forEach(
+      (key) => delete guestHintsByCase[key],
+    );
   });
 
   const solvedByCase = computed<Record<string, string[]>>(() =>
-      user.value ? (userDoc.value?.solvedByCase ?? {}) : guestSolvedByCase,
+    user.value ? (userDoc.value?.solvedByCase ?? {}) : guestSolvedByCase,
   );
 
   const hintsUsedByCase = computed<Record<string, string[]>>(() =>
-      user.value ? (userDoc.value?.hintsUsedByCase ?? {}) : guestHintsByCase,
+    user.value ? (userDoc.value?.hintsUsedByCase ?? {}) : guestHintsByCase,
   );
 
   function isSolved(caseId: string, objectiveId: string): boolean {
@@ -87,8 +88,8 @@ function createProgress() {
   }
 
   async function markSolved(
-      caseId: string,
-      objectiveId: string,
+    caseId: string,
+    objectiveId: string,
   ): Promise<ProgressOutcome> {
     if (isSolved(caseId, objectiveId)) return "duplicate";
 
@@ -97,9 +98,9 @@ function createProgress() {
       pendingSolved.add(pendingKey);
       try {
         await setDoc(
-            userDocRef.value,
-            { solvedByCase: { [caseId]: arrayUnion(objectiveId) } },
-            { merge: true },
+          userDocRef.value,
+          { solvedByCase: { [caseId]: arrayUnion(objectiveId) } },
+          { merge: true },
         );
         return "new";
       } catch (error) {
@@ -116,8 +117,8 @@ function createProgress() {
   }
 
   async function useHint(
-      caseId: string,
-      objectiveId: string,
+    caseId: string,
+    objectiveId: string,
   ): Promise<ProgressOutcome> {
     if (isHintUsed(caseId, objectiveId)) return "duplicate";
 
@@ -126,9 +127,9 @@ function createProgress() {
       pendingHints.add(pendingKey);
       try {
         await setDoc(
-            userDocRef.value,
-            { hintsUsedByCase: { [caseId]: arrayUnion(objectiveId) } },
-            { merge: true },
+          userDocRef.value,
+          { hintsUsedByCase: { [caseId]: arrayUnion(objectiveId) } },
+          { merge: true },
         );
         return "new";
       } catch (error) {
@@ -175,19 +176,6 @@ type Progress = ReturnType<typeof createProgress>;
 
 let shared: Progress | null = null;
 
-/**
- * Progresso do usuário como singleton do app.
- *
- * useDocument()/useFirestore() criam uma assinatura do Firestore e um watch por
- * chamada. Com cinco componentes consumindo isto, cada um abria a sua própria
- * assinatura e o watch de migração de visitante rodava cinco vezes no login.
- *
- * A criação é pregada no primeiro uso (que acontece dentro de setup, depois de
- * app.use(VueFire)) e roda num effectScope destacado: o VueFire registra
- * onScopeDispose para desligar o onSnapshot, então um escopo destacado é o que
- * impede a assinatura de morrer no unmount do primeiro componente. Nunca é
- * descartado — é o mesmo tempo de vida do app.
- */
 export function useProgress(): Progress {
   if (!shared) {
     shared = effectScope(true).run(createProgress)!;
