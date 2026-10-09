@@ -1,5 +1,5 @@
 import { onMounted, onUnmounted, shallowRef, watch, type Ref } from "vue";
-import { Compartment, EditorState } from "@codemirror/state";
+import { Compartment, EditorState, Prec } from "@codemirror/state";
 import {
   EditorView,
   keymap,
@@ -49,16 +49,18 @@ export function useSqlCodeMirror(options: UseSqlCodeMirrorOptions) {
     if (!options.container.value) return;
     const isRunning = options.isRunning ?? (() => false);
 
-    const runKeymap = keymap.of([
-      {
-        key: "Mod-Enter",
-        run: () => {
-          if (isRunning()) return true;
-          options.onRun();
-          return true;
+    const runKeymap = Prec.highest(
+      keymap.of([
+        {
+          key: "Mod-Enter",
+          run: () => {
+            if (isRunning()) return true;
+            options.onRun();
+            return true;
+          },
         },
-      },
-    ]);
+      ]),
+    );
 
     const state = EditorState.create({
       doc: options.initialValue,
