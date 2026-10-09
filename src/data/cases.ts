@@ -23,7 +23,7 @@ import type { Case } from "../types/case";
 const CASES_BASICO: Case[] = [
   {
     id: "clientes-bloqueados",
-    caseNumber: "060",
+    caseNumber: "001",
     title: "Clientes Bloqueados no Cadastro",
     level: "Iniciante",
     category: "Suporte Técnico — Cadastro",
@@ -81,7 +81,7 @@ const CASES_BASICO: Case[] = [
   },
   {
     id: "estoque-abaixo-minimo",
-    caseNumber: "061",
+    caseNumber: "002",
     title: "Produtos Abaixo do Estoque Mínimo",
     level: "Iniciante",
     category: "Suporte Técnico — Estoque",
@@ -140,7 +140,7 @@ const CASES_BASICO: Case[] = [
   },
   {
     id: "motivos-cancelamento",
-    caseNumber: "062",
+    caseNumber: "003",
     title: "Motivos de Cancelamento Bagunçados",
     level: "Iniciante",
     category: "Suporte Técnico — Configuração",
@@ -201,7 +201,7 @@ const CASES_BASICO: Case[] = [
 const CASES_INTERMEDIARIO: Case[] = [
   {
     id: "vendas-nao-efetivadas",
-    caseNumber: "070",
+    caseNumber: "004",
     title: "Vendas que Sumiram do Fechamento",
     level: "Intermediário",
     category: "Suporte Técnico — Caixa",
@@ -269,7 +269,7 @@ const CASES_INTERMEDIARIO: Case[] = [
   },
   {
     id: "itens-fora-preco-tabela",
-    caseNumber: "071",
+    caseNumber: "005",
     title: "Itens Vendidos Fora do Preço de Tabela",
     level: "Intermediário",
     category: "Suporte Técnico — Vendas",
@@ -334,7 +334,7 @@ const CASES_INTERMEDIARIO: Case[] = [
   },
   {
     id: "caixas-sem-fechamento",
-    caseNumber: "072",
+    caseNumber: "006",
     title: "Caixas que Nunca Fecharam",
     level: "Intermediário",
     category: "Suporte Técnico — Financeiro",
@@ -400,7 +400,7 @@ const CASES_INTERMEDIARIO: Case[] = [
 const CASES_AVANCADO: Case[] = [
   {
     id: "compradores-unicos-alto-valor",
-    caseNumber: "080",
+    caseNumber: "007",
     title: "Clientes de Compra Única Acima da Média",
     level: "Avançado",
     category: "Suporte Técnico — Marketing/Vendas",
@@ -486,7 +486,7 @@ const CASES_AVANCADO: Case[] = [
   },
   {
     id: "produtos-vendidos-prejuizo",
-    caseNumber: "081",
+    caseNumber: "008",
     title: "Produtos Vendidos com Prejuízo",
     level: "Avançado",
     category: "Suporte Técnico — Financeiro/Fiscal",
@@ -553,7 +553,7 @@ const CASES_AVANCADO: Case[] = [
   },
   {
     id: "ranking-vendedores-filial",
-    caseNumber: "082",
+    caseNumber: "009",
     title: "Ranking de Vendedores por Filial",
     level: "Avançado",
     category: "Suporte Técnico — Comercial",
@@ -627,6 +627,358 @@ const CASES_AVANCADO: Case[] = [
                  SELECT r.Filial__Codigo, f.Nome, r.total
                  FROM ranking r JOIN Funcionario f ON f.Codigo = r.Vendedor__Codigo
                  WHERE r.posicao <= 2;`,
+      },
+    ],
+  },
+  {
+    id: "icms-desonerado-devolucao",
+    caseNumber: "010",
+    title: "ICMS Desonerado Preso em Nota de Devolução",
+    level: "Avançado",
+    category: "Suporte Técnico — Fiscal",
+    tables: "Movimento, Movimento_Produto, Filial, Cli_For",
+    context:
+      "Uma nota de devolução foi rejeitada pela SEFAZ por causa do ICMS Desonerado. Isso costuma acontecer quando o cliente é Simples Nacional, mas o XML importado veio de um fornecedor Regime Normal que destaca esse campo — e ele acaba herdado na devolução. Antes de ajustar qualquer coisa no banco, é preciso mapear exatamente quais linhas estão com esse problema.",
+    setupSQL: `
+      CREATE TABLE Filial (Codigo INTEGER PRIMARY KEY, Nome TEXT, RegimeTributario TEXT);
+      INSERT INTO Filial VALUES (1,'Matriz Centro','Simples Nacional'), (2,'Filial Zona Sul','Regime Normal');
+ 
+      CREATE TABLE Cli_For (Codigo INTEGER PRIMARY KEY, Nome TEXT);
+      INSERT INTO Cli_For VALUES (301,'Distribuidora ABC Ltda'), (302,'Comercial XYZ');
+ 
+      CREATE TABLE Movimento (
+        Ide TEXT PRIMARY KEY, Filial__Codigo INTEGER, Sequencia INTEGER, Tipo TEXT, Cli_For__Codigo INTEGER
+      );
+      INSERT INTO Movimento VALUES
+        ('MOV-A1',1,5001,'D',301),
+        ('MOV-A2',1,5002,'S',301),
+        ('MOV-A3',2,6001,'D',302),
+        ('MOV-A4',1,5003,'D',302),
+        ('MOV-A5',1,5004,'D',301);
+ 
+      CREATE TABLE Movimento_Produto (
+        Movimento__Ide TEXT, Linha INTEGER, Produto__Codigo TEXT, MotDesICMS TEXT, MotDesIcmsSt TEXT
+      );
+      INSERT INTO Movimento_Produto VALUES
+        ('MOV-A1',1,'P001','10','10'),
+        ('MOV-A1',2,'P002','0','0'),
+        ('MOV-A2',1,'P001','10','10'),
+        ('MOV-A3',1,'P003','10','10'),
+        ('MOV-A4',1,'P002','20','20'),
+        ('MOV-A4',2,'P004','30','10'),
+        ('MOV-A5',1,'P001','0','0');
+    `,
+    objectives: [
+      {
+        id: "o1",
+        xp: 30,
+        question:
+          "Liste as linhas de Movimento_Produto com ICMS Desonerado (MotDesICMS <> '0') que pertencem a devoluções (Tipo = 'D').",
+        hint: "Junte Movimento_Produto com Movimento pelo Ide, e filtre por Tipo = 'D' e MotDesICMS diferente de '0'.",
+        refSQL: `SELECT mp.Movimento__Ide, mp.Linha
+                 FROM Movimento_Produto mp JOIN Movimento m ON m.Ide = mp.Movimento__Ide
+                 WHERE m.Tipo = 'D' AND mp.MotDesICMS <> '0';`,
+      },
+      {
+        id: "o2",
+        xp: 45,
+        question:
+          "Restrinja o resultado anterior apenas às devoluções cuja filial é Simples Nacional (só aí o campo é realmente um problema).",
+        hint: "Adicione mais um JOIN com Filial e filtre pelo regime tributário.",
+        refSQL: `SELECT mp.Movimento__Ide, mp.Linha
+                 FROM Movimento_Produto mp
+                 JOIN Movimento m ON m.Ide = mp.Movimento__Ide
+                 JOIN Filial fi ON fi.Codigo = m.Filial__Codigo
+                 WHERE m.Tipo = 'D' AND mp.MotDesICMS <> '0' AND fi.RegimeTributario = 'Simples Nacional';`,
+      },
+      {
+        id: "o3",
+        xp: 60,
+        question:
+          "Agrupe por movimento e encontre quais notas têm mais de uma linha afetada — essas são prioridade para o ajuste.",
+        hint: "Agrupe pelo Ide do movimento e use HAVING pra achar quem tem mais de uma linha afetada.",
+        refSQL: `SELECT m.Ide, m.Sequencia, COUNT(*) AS total
+                 FROM Movimento_Produto mp
+                 JOIN Movimento m ON m.Ide = mp.Movimento__Ide
+                 JOIN Filial fi ON fi.Codigo = m.Filial__Codigo
+                 WHERE m.Tipo = 'D' AND mp.MotDesICMS <> '0' AND fi.RegimeTributario = 'Simples Nacional'
+                 GROUP BY m.Ide
+                 HAVING COUNT(*) > 1;`,
+      },
+    ],
+  },
+  {
+    id: "valor-final-divergente-ipi",
+    caseNumber: "011",
+    title: "Valor Final Divergente após Zerar o IPI",
+    level: "Avançado",
+    category: "Suporte Técnico — Financeiro/Fiscal",
+    tables: "Movimento, Movimento_Produto",
+    context:
+      "Depois de zerar o IPI de uma saída já efetivada, o valor total da nota ficou divergente do esperado — porque o campo Valor_final é a soma de vários componentes, incluindo o IPI, e não se recalcula sozinho. Antes de rodar o ajuste, é preciso confirmar exatamente quais linhas estão desatualizadas. E o primeiro passo é mais básico do que parece: conferir se o próprio Valor_total ainda fecha com Qtde × Valor_Unit, porque pelo menos uma linha teve esse campo mexido à mão e ficou fora da conta.",
+    setupSQL: `
+      CREATE TABLE Movimento (Ide TEXT PRIMARY KEY, Sequencia INTEGER);
+      INSERT INTO Movimento VALUES ('MOV-B1',7001), ('MOV-B2',7002), ('MOV-B3',7003);
+ 
+      CREATE TABLE Movimento_Produto (
+        Movimento__Ide TEXT, Linha INTEGER, Qtde REAL, Valor_Unit REAL, Desc_Valor REAL,
+        Valor_promocao REAL, vICMSDeson REAL, vfcpst REAL, Valor_Frete REAL, Valor_Seguro REAL,
+        Valor_Outro REAL, Valor_IPI REAL, Comissao REAL, Valor_ICMS_ST REAL,
+        Valor_total REAL, Valor_final REAL
+      );
+      INSERT INTO Movimento_Produto VALUES
+        ('MOV-B1',1,2,50.00,5.00,0,0,0,0,0,0,8.00,2.00,3.00,100.00,108.00),
+        ('MOV-B1',2,1,200.00,0,10.00,0,0,0,0,0,0.00,5.00,0,200.00,210.00),
+        ('MOV-B1',3,3,15.00,1.00,0,2.00,0,0,0,0,1.50,0.50,0,45.00,44.00),
+        ('MOV-B2',1,4,25.00,2.00,0,0,1.00,3.00,0,0,4.00,1.00,0.50,100.00,107.50),
+        ('MOV-B2',2,2,80.00,0,5.00,0,0,0,0,0,0.00,3.00,0,160.00,163.00),
+        ('MOV-B2',3,1,500.00,0,0,0,0,0,0,0,45.00,10.00,5.00,495.00,560.00),
+        ('MOV-B3',1,6,12.00,3.00,0,0,0.50,0,0,0,0.00,1.00,0,72.00,82.50),
+        ('MOV-B3',2,2,90.00,0,0,0,0,2.00,0,0,6.00,0,0,180.00,188.00);
+    `,
+    objectives: [
+      {
+        id: "o1",
+        xp: 30,
+        question:
+          "Antes de recalcular qualquer coisa, ache as linhas em que o campo Valor_total não bate com Qtde × Valor_Unit.",
+        hint: "Compare Valor_total com Qtde * Valor_Unit e devolva só as linhas que divergem. Um ROUND(...,2) nos dois lados evita diferença por causa de casa decimal.",
+        refSQL: `SELECT mp.Movimento__Ide, mp.Linha
+                 FROM Movimento_Produto mp
+                 WHERE ROUND(mp.Valor_total,2) <> ROUND(mp.Qtde * mp.Valor_Unit, 2);`,
+      },
+      {
+        id: "o2",
+        xp: 45,
+        question:
+          "Agora recalcule o Valor_final pela fórmula completa e liste as linhas em que o valor armazenado diverge do calculado.",
+        hint: "Fórmula completa: Qtde*Valor_Unit menos os descontos, mais os acréscimos (frete, seguro, outros, IPI, comissão, ICMS ST). Um ROUND(...,2) evita diferença por causa de casa decimal.",
+        refSQL: `SELECT m.Sequencia, mp.Linha, mp.Valor_final AS armazenado,
+                        ROUND(mp.Qtde*mp.Valor_Unit - mp.Desc_Valor - mp.Valor_promocao - mp.vICMSDeson
+                              + mp.vfcpst + mp.Valor_Frete + mp.Valor_Seguro + mp.Valor_Outro
+                              + mp.Valor_IPI + mp.Comissao + mp.Valor_ICMS_ST, 2) AS calculado
+                 FROM Movimento_Produto mp JOIN Movimento m ON m.Ide = mp.Movimento__Ide
+                 WHERE ROUND(mp.Valor_final,2) <>
+                       ROUND(mp.Qtde*mp.Valor_Unit - mp.Desc_Valor - mp.Valor_promocao - mp.vICMSDeson
+                             + mp.vfcpst + mp.Valor_Frete + mp.Valor_Seguro + mp.Valor_Outro
+                             + mp.Valor_IPI + mp.Comissao + mp.Valor_ICMS_ST, 2);`,
+      },
+      {
+        id: "o3",
+        xp: 60,
+        question:
+          "Some a diferença por nota e mostre só as notas cujo impacto financeiro total passa de R$10.",
+        hint: "Some a diferença (armazenado menos calculado) agrupando por movimento, e filtre com HAVING pra priorizar quem tem mais impacto.",
+        refSQL: `SELECT m.Sequencia,
+                        SUM(ROUND(mp.Valor_final,2) -
+                            ROUND(mp.Qtde*mp.Valor_Unit - mp.Desc_Valor - mp.Valor_promocao - mp.vICMSDeson
+                                  + mp.vfcpst + mp.Valor_Frete + mp.Valor_Seguro + mp.Valor_Outro
+                                  + mp.Valor_IPI + mp.Comissao + mp.Valor_ICMS_ST, 2)) AS diferenca_total
+                 FROM Movimento_Produto mp JOIN Movimento m ON m.Ide = mp.Movimento__Ide
+                 WHERE ROUND(mp.Valor_final,2) <>
+                       ROUND(mp.Qtde*mp.Valor_Unit - mp.Desc_Valor - mp.Valor_promocao - mp.vICMSDeson
+                             + mp.vfcpst + mp.Valor_Frete + mp.Valor_Seguro + mp.Valor_Outro
+                             + mp.Valor_IPI + mp.Comissao + mp.Valor_ICMS_ST, 2)
+                 GROUP BY m.Ide
+                 HAVING diferenca_total > 10;`,
+      },
+    ],
+  },
+  {
+    id: "vencimento-parcela-divergente",
+    caseNumber: "012",
+    title: "Vencimento de Parcela Fora do Padrão",
+    level: "Avançado",
+    category: "Suporte Técnico — Financeiro",
+    tables: "Movimento, Movimento_NFe, Movimento_Financeiro",
+    context:
+      "O financeiro percebeu parcelas com data de vencimento estranha. A regra é simples: o vencimento de uma parcela a pagar (Tipo = 'P') deveria ser sempre a data de emissão da nota mais 1 dia. É preciso achar as parcelas que fogem dessa regra.",
+    setupSQL: `
+      CREATE TABLE Movimento (Ide TEXT PRIMARY KEY, Sequencia INTEGER);
+      INSERT INTO Movimento VALUES ('MOV-C1',8001), ('MOV-C2',8002), ('MOV-C3',8003);
+ 
+      CREATE TABLE Movimento_NFe (Movimento__Ide TEXT, Data_Emissao TEXT);
+      INSERT INTO Movimento_NFe VALUES ('MOV-C1','2024-05-10'), ('MOV-C2','2024-05-12'), ('MOV-C3','2024-05-15');
+ 
+      CREATE TABLE Movimento_Financeiro (Ide TEXT PRIMARY KEY, Movimento__Ide TEXT, Tipo TEXT, Vencimento TEXT);
+      INSERT INTO Movimento_Financeiro VALUES
+        ('FIN-1','MOV-C1','P','2024-05-11'),
+        ('FIN-2','MOV-C1','P','2024-05-20'),
+        ('FIN-3','MOV-C1','R','2024-05-11'),
+        ('FIN-4','MOV-C2','P','2024-05-13'),
+        ('FIN-5','MOV-C2','P','2024-05-12'),
+        ('FIN-6','MOV-C3','P','2024-05-16'),
+        ('FIN-7','MOV-C3','P','2024-05-16'),
+        ('FIN-9','MOV-C1','P','2024-05-25');
+    `,
+    objectives: [
+      {
+        id: "o1",
+        xp: 30,
+        question:
+          "Liste as parcelas do tipo 'P' cujo vencimento não é a data de emissão da nota mais 1 dia.",
+        hint: "A função date(coluna, '+1 day') soma um dia a uma data em formato texto. Compare o resultado com o Vencimento armazenado.",
+        refSQL: `SELECT mf.Ide, mf.Vencimento, date(nfe.Data_Emissao,'+1 day') AS vencimento_esperado
+                 FROM Movimento_Financeiro mf JOIN Movimento_NFe nfe ON nfe.Movimento__Ide = mf.Movimento__Ide
+                 WHERE mf.Tipo = 'P' AND mf.Vencimento <> date(nfe.Data_Emissao,'+1 day');`,
+      },
+      {
+        id: "o2",
+        xp: 45,
+        question:
+          "Repita a consulta trazendo também a Sequencia da nota (mais fácil de identificar do que o Ide técnico).",
+        hint: "Adicione o JOIN com Movimento só pra trazer a Sequencia.",
+        refSQL: `SELECT m.Sequencia, mf.Ide, mf.Vencimento, date(nfe.Data_Emissao,'+1 day') AS esperado
+                 FROM Movimento_Financeiro mf
+                 JOIN Movimento_NFe nfe ON nfe.Movimento__Ide = mf.Movimento__Ide
+                 JOIN Movimento m ON m.Ide = mf.Movimento__Ide
+                 WHERE mf.Tipo = 'P' AND mf.Vencimento <> date(nfe.Data_Emissao,'+1 day');`,
+      },
+      {
+        id: "o3",
+        xp: 60,
+        question:
+          "Agrupe por nota e encontre as que têm mais de uma parcela com vencimento errado.",
+        hint: "Agrupe pelo Ide do movimento e use HAVING > 1 pra achar as notas com mais de uma parcela errada.",
+        refSQL: `SELECT m.Sequencia, COUNT(*) AS total
+                 FROM Movimento_Financeiro mf
+                 JOIN Movimento_NFe nfe ON nfe.Movimento__Ide = mf.Movimento__Ide
+                 JOIN Movimento m ON m.Ide = mf.Movimento__Ide
+                 WHERE mf.Tipo = 'P' AND mf.Vencimento <> date(nfe.Data_Emissao,'+1 day')
+                 GROUP BY m.Ide
+                 HAVING COUNT(*) > 1;`,
+      },
+    ],
+  },
+  {
+    id: "caixa-travado-funcionario-inativo",
+    caseNumber: "013",
+    title: "Caixa que Não Fecha por Funcionário Inativo",
+    level: "Avançado",
+    category: "Suporte Técnico — Caixa/RH",
+    tables: "Financeiro_Caixa_Mov, Funcionario",
+    context:
+      "Um caixa não estava fechando porque o sistema pedia a senha do funcionário que abriu — só que esse funcionário foi desligado e está inativo. O suporte quer saber quais caixas estão nessa situação e se existe algum funcionário ativo vinculado ao mesmo caixa padrão que poderia ajudar a destravar.",
+    setupSQL: `
+      CREATE TABLE Funcionario (Codigo INTEGER PRIMARY KEY, Nome TEXT, Inativo INTEGER, Caixa_Padrao INTEGER);
+      INSERT INTO Funcionario VALUES
+        (50,'Jonas Ribeiro Alves',1,1),
+        (51,'Patrícia Souza Lima',0,1),
+        (52,'Eduardo Martins Braga',0,2),
+        (53,'Camila Rezende Alves',1,3),
+        (54,'Tiago Nascimento Rocha',0,3),
+        (55,'Sabrina Costa Lemos',0,2),
+        (56,'Roberto Diniz Prado',1,4);
+ 
+      CREATE TABLE Financeiro_Caixa_Mov (
+        Ide TEXT PRIMARY KEY, Filial INTEGER, Caixa INTEGER, Abertura TEXT, Fechamento TEXT, Abertura_Usuario INTEGER
+      );
+      INSERT INTO Financeiro_Caixa_Mov VALUES
+        ('FCM-1',1,1,'2024-07-01 08:00',NULL,50),
+        ('FCM-2',1,2,'2024-07-01 08:10','2024-07-01 18:00',52),
+        ('FCM-3',1,3,'2024-07-02 09:00',NULL,53),
+        ('FCM-4',2,1,'2024-07-01 09:00','2024-07-01 19:00',50),
+        ('FCM-5',1,2,'2024-07-03 08:05',NULL,55),
+        ('FCM-6',2,4,'2024-07-02 10:00',NULL,56);
+    `,
+    objectives: [
+      {
+        id: "o1",
+        xp: 30,
+        question:
+          "Liste os registros de caixa abertos (sem fechamento) cujo funcionário de abertura está inativo.",
+        hint: "Junte Financeiro_Caixa_Mov com Funcionario pelo usuário de abertura; filtre por Fechamento nulo e funcionário inativo.",
+        refSQL: `SELECT f.Ide, f.Caixa, fu.Nome
+                 FROM Financeiro_Caixa_Mov f JOIN Funcionario fu ON fu.Codigo = f.Abertura_Usuario
+                 WHERE f.Fechamento IS NULL AND fu.Inativo = 1;`,
+      },
+      {
+        id: "o2",
+        xp: 45,
+        question:
+          "Para cada caixa travado, encontre um funcionário ativo vinculado ao mesmo caixa padrão, como possível substituto.",
+        hint: "Um segundo JOIN com Funcionario (com outro apelido) comparando o Caixa_Padrao encontra colegas ativos vinculados ao mesmo caixa.",
+        refSQL: `SELECT f.Ide AS caixa_travado, fu_ativo.Nome AS substituto_possivel
+                 FROM Financeiro_Caixa_Mov f
+                 JOIN Funcionario fu_inativo ON fu_inativo.Codigo = f.Abertura_Usuario
+                 JOIN Funcionario fu_ativo ON fu_ativo.Caixa_Padrao = fu_inativo.Caixa_Padrao AND fu_ativo.Inativo = 0
+                 WHERE f.Fechamento IS NULL AND fu_inativo.Inativo = 1;`,
+      },
+      {
+        id: "o3",
+        xp: 60,
+        question:
+          "Conte quantos substitutos possíveis existem para cada caixa travado, mostrando só os que têm pelo menos 1.",
+        hint: "Repare que o INNER JOIN do objetivo anterior já esconde os casos sem nenhum substituto disponível — o GROUP BY com HAVING só confirma isso.",
+        refSQL: `SELECT f.Ide AS caixa_travado, COUNT(fu_ativo.Codigo) AS substitutos
+                 FROM Financeiro_Caixa_Mov f
+                 JOIN Funcionario fu_inativo ON fu_inativo.Codigo = f.Abertura_Usuario
+                 JOIN Funcionario fu_ativo ON fu_ativo.Caixa_Padrao = fu_inativo.Caixa_Padrao AND fu_ativo.Inativo = 0
+                 WHERE f.Fechamento IS NULL AND fu_inativo.Inativo = 1
+                 GROUP BY f.Ide
+                 HAVING COUNT(fu_ativo.Codigo) >= 1;`,
+      },
+    ],
+  },
+  {
+    id: "bug-troco-forma-pagamento",
+    caseNumber: "014",
+    title: "Bug do Troco Subtraindo o Total da Forma de Pagamento",
+    level: "Avançado",
+    category: "Suporte Técnico — Financeiro",
+    tables: "Movimento_Financeiro_Diario",
+    context:
+      "Um parceiro notou valores estranhos no fechamento de caixa de um dia específico, numa única forma de pagamento. Depois de comparar vários dias, foi identificado um bug em que o troco estava sendo subtraído do total da forma de pagamento em dinheiro. O primeiro passo pra confirmar isso é achar o dia fora do padrão comparando com a média dos outros dias.",
+    setupSQL: `
+      CREATE TABLE Movimento_Financeiro_Diario (Data TEXT, FormaPagamento TEXT, Valor REAL);
+      INSERT INTO Movimento_Financeiro_Diario VALUES
+        ('2024-06-01','Dinheiro',120), ('2024-06-01','Dinheiro',80), ('2024-06-01','Dinheiro',50),
+        ('2024-06-02','Dinheiro',100), ('2024-06-02','Dinheiro',90), ('2024-06-02','Dinheiro',70),
+        ('2024-06-03','Dinheiro',40), ('2024-06-03','Dinheiro',30), ('2024-06-03','Dinheiro',10),
+        ('2024-06-04','Dinheiro',110), ('2024-06-04','Dinheiro',95), ('2024-06-04','Dinheiro',60),
+        ('2024-06-05','Dinheiro',130), ('2024-06-05','Dinheiro',85), ('2024-06-05','Dinheiro',55),
+        ('2024-06-01','Cartão',300), ('2024-06-01','Cartão',200),
+        ('2024-06-02','Cartão',320), ('2024-06-02','Cartão',210),
+        ('2024-06-03','Cartão',310), ('2024-06-03','Cartão',205),
+        ('2024-06-04','Cartão',305), ('2024-06-04','Cartão',215),
+        ('2024-06-05','Cartão',315), ('2024-06-05','Cartão',195);
+    `,
+    objectives: [
+      {
+        id: "o1",
+        xp: 30,
+        question:
+          "Calcule o total recebido por dia em cada forma de pagamento.",
+        hint: "Agrupe por Data e FormaPagamento e some o valor.",
+        refSQL:
+          "SELECT Data, FormaPagamento, SUM(Valor) AS total FROM Movimento_Financeiro_Diario GROUP BY Data, FormaPagamento;",
+      },
+      {
+        id: "o2",
+        xp: 45,
+        question:
+          "Ao lado do total de cada dia, mostre a média geral daquela forma de pagamento (considerando todos os dias).",
+        hint: "AVG(total) OVER (PARTITION BY FormaPagamento) calcula a média de cada forma sem precisar de uma segunda consulta separada.",
+        refSQL: `WITH totais_dia AS (
+                   SELECT Data, FormaPagamento, SUM(Valor) AS total FROM Movimento_Financeiro_Diario GROUP BY Data, FormaPagamento
+                 )
+                 SELECT Data, FormaPagamento, total, AVG(total) OVER (PARTITION BY FormaPagamento) AS media_forma
+                 FROM totais_dia;`,
+      },
+      {
+        id: "o3",
+        xp: 60,
+        question:
+          "Encontre o dia e a forma de pagamento em que o total ficou abaixo de 60% da média daquela forma — o indício do bug.",
+        hint: "Não dá pra filtrar direto pelo resultado da window function — coloque o cálculo numa CTE e filtre na consulta de fora.",
+        refSQL: `WITH totais_dia AS (
+                   SELECT Data, FormaPagamento, SUM(Valor) AS total FROM Movimento_Financeiro_Diario GROUP BY Data, FormaPagamento
+                 ),
+                 com_media AS (
+                   SELECT Data, FormaPagamento, total, AVG(total) OVER (PARTITION BY FormaPagamento) AS media_forma
+                   FROM totais_dia
+                 )
+                 SELECT Data, FormaPagamento, total, media_forma FROM com_media WHERE total < media_forma * 0.6;`,
       },
     ],
   },

@@ -12,7 +12,12 @@ service cloud.firestore {
         'caixas-sem-fechamento',
         'compradores-unicos-alto-valor',
         'produtos-vendidos-prejuizo',
-        'ranking-vendedores-filial'
+        'ranking-vendedores-filial',
+        'icms-desonerado-devolucao',
+        'valor-final-divergente-ipi',
+        'vencimento-parcela-divergente',
+        'caixa-travado-funcionario-inativo',
+        'bug-troco-forma-pagamento'
       ];
     }
 
