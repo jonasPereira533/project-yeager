@@ -36,8 +36,8 @@ const CASES_BASICO: Case[] = [
         Nome TEXT,
         Cidade TEXT,
         UF TEXT,
-        Bloqueado INTEGER,
-        Inativo INTEGER
+        Bloqueado BOOLEAN,
+        Inativo BOOLEAN
       );
       INSERT INTO Cli_For VALUES
         (1,'Marisa Andrade Souza','São Paulo','SP',1,0),
@@ -56,7 +56,7 @@ const CASES_BASICO: Case[] = [
         id: "o1",
         xp: 10,
         question: "Liste nome, cidade e UF de todos os clientes bloqueados.",
-        hint: "Use WHERE pra filtrar por um campo do tipo booleano (0/1).",
+        hint: "Use WHERE pra filtrar por um campo booleano. Vale tanto Bloqueado = 1 quanto Bloqueado = true.",
         refSQL: "SELECT Nome, Cidade, UF FROM Cli_For WHERE Bloqueado = 1;",
       },
       {
@@ -152,7 +152,7 @@ const CASES_BASICO: Case[] = [
         Codigo INTEGER PRIMARY KEY,
         Nome TEXT,
         Tipo INTEGER,
-        Inativo INTEGER
+        Inativo BOOLEAN
       );
       INSERT INTO MotivoCancelamento VALUES
         (1,'Produto em Falta',1,0),
@@ -223,7 +223,7 @@ const CASES_INTERMEDIARIO: Case[] = [
         Cli_For__Codigo INTEGER,
         Caixa__Codigo INTEGER,
         Total_Final REAL,
-        Efetivado INTEGER
+        Efetivado BOOLEAN
       );
       INSERT INTO Movimento VALUES
         (1,1001,'2024-06-01 09:15',101,1,350.00,1),
@@ -568,7 +568,7 @@ const CASES_AVANCADO: Case[] = [
 
       CREATE TABLE Movimento (
         Filial__Codigo INTEGER, Sequencia INTEGER, Vendedor__Codigo INTEGER,
-        Total_Final REAL, Efetivado INTEGER
+        Total_Final REAL, Efetivado BOOLEAN
       );
       INSERT INTO Movimento VALUES
         (1,1,10,500.00,1),

@@ -50,6 +50,15 @@ const expanded = ref(true);
           </span>
         </li>
         <li>
+          <span class="rule-label">Flags</span>
+          <span>
+            Colunas marcadas como <strong>BOOLEAN</strong> no esquema aceitam
+            <strong>true</strong> e <strong>false</strong> tanto quanto
+            <strong>1</strong> e <strong>0</strong> — use a forma que ficar
+            mais legível. No resultado elas sempre aparecem como 1 ou 0.
+          </span>
+        </li>
+        <li>
           <span class="rule-label">Erro de SQL</span>
           <span>
             Um erro de sintaxe só mostra um aviso técnico; não conta como

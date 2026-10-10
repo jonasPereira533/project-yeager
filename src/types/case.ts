@@ -41,6 +41,8 @@ export type FeedbackType = "none" | "solved" | "open" | "error";
 export interface Feedback {
   type: FeedbackType;
   message: string;
+  /** Linha de apoio exibida sob o carimbo, explicando a falha da comparacao. */
+  detail?: string;
 }
 
 export interface QueryResult {
