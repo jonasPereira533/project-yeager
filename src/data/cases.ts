@@ -63,7 +63,7 @@ const CASES_BASICO: Case[] = [
         id: "o2",
         xp: 15,
         question:
-          "Entre os bloqueados, filtre apenas os que são do estado de São Paulo ('SP').",
+            "Entre os clientes bloqueados, liste apenas os do estado de São Paulo ('SP'). Traga somente as colunas Nome e Cidade, nessa ordem.",
         hint: "Combine duas condições com AND: uma pro bloqueio, outra pro estado.",
         refSQL:
           "SELECT Nome, Cidade FROM Cli_For WHERE Bloqueado = 1 AND UF = 'SP';",
@@ -72,7 +72,7 @@ const CASES_BASICO: Case[] = [
         id: "o3",
         xp: 20,
         question:
-          "Conte quantos clientes bloqueados existem por UF, do maior para o menor.",
+            "Conte quantos clientes bloqueados existem em cada UF. Traga duas colunas: a UF e a quantidade, com o estado que tem mais bloqueios primeiro.",
         hint: "Agrupe por UF e use COUNT(*); ORDER BY pra ver o estado com mais bloqueios primeiro.",
         refSQL:
           "SELECT UF, COUNT(*) AS total FROM Cli_For WHERE Bloqueado = 1 GROUP BY UF ORDER BY total DESC;",
