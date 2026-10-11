@@ -13,9 +13,9 @@ import CaseTabs from "../components/solution-page-components/case-tabs.vue";
 import { CASES } from "../data/cases";
 import { useSqlEngine } from "../composables/use-sql-engine";
 import { useProgress } from "../composables/use-progress";
+import { useDrafts } from "../composables/use-drafts";
 import {
-  normalizeExecResult,
-  rowSetsMatch,
+  matchesReference,
   toQueryResult,
 } from "../utils/compare-results";
 import type {
@@ -30,6 +30,14 @@ import CaseRules from "../components/solution-page-components/case-rules.vue";
 
 const { createDatabase } = useSqlEngine();
 const { markSolved, countSolved } = useProgress();
+const {
+  getDraft,
+  getActiveObjective,
+  saveDraft,
+  saveNow,
+  setActiveObjective,
+  cancelPending,
+} = useDrafts();
 
 const activeCaseId = ref(CASES[0].id);
 const activeObjectiveId = ref<string | null>(null);
@@ -43,6 +51,10 @@ const engineError = ref("");
 const isRunning = ref(false);
 
 let runSeq = 0;
+
+// Trava o watcher de rascunho enquanto um caso esta sendo carregado, para nao
+// gravar o texto antigo no caso novo.
+let isRestoringDraft = false;
 
 const activeCase = computed<Case | undefined>(() =>
   CASES.find((c) => c.id === activeCaseId.value),
@@ -121,57 +133,100 @@ const activeTab = ref<"ficha" | "investigacao">("ficha");
 
 async function loadCase(caseId: string) {
   const seq = ++runSeq;
-  activeCaseId.value = caseId;
-  solvedBaseline = countSolved(caseId);
-  showCompleteModal.value = false;
-  engineError.value = "";
 
-  const c = activeCase.value;
-  if (!c) {
+  // Precisa cobrir a funcao inteira: o activeCaseId muda na primeira linha e o
+  // texto so e restaurado no fim, entao o watcher dispararia no meio do await
+  // gravando o rascunho antigo no caso novo.
+  isRestoringDraft = true;
+  try {
+    activeCaseId.value = caseId;
+    solvedBaseline = countSolved(caseId);
+    showCompleteModal.value = false;
+    engineError.value = "";
+
+    const c = activeCase.value;
+    if (!c) {
+      db.value?.close();
+      db.value = null;
+      schema.value = [];
+      return;
+    }
+
+    let nextDb: Database | undefined;
+    try {
+      nextDb = await createDatabase(c.setupSQL);
+    } catch (error) {
+      engineError.value =
+        "Não foi possível baixar o motor SQLite (sql.js). Verifique sua conexão.";
+      console.error("Falha ao carregar o motor sql.js:", error);
+      return;
+    }
+
+    try {
+      schema.value = readSchema(nextDb);
+    } catch (error) {
+      nextDb.close();
+      engineError.value = `Falha ao preparar o caso "${c.title}": o esquema do banco não pôde ser lido.`;
+      console.error("Falha ao ler o esquema do caso:", error);
+      return;
+    }
+
+    if (!nextDb || seq !== runSeq) {
+      nextDb?.close();
+      return;
+    }
+
     db.value?.close();
-    db.value = null;
-    schema.value = [];
-    return;
-  }
+    db.value = nextDb;
 
-  let nextDb: Database | undefined;
-  try {
-    nextDb = await createDatabase(c.setupSQL);
-  } catch (error) {
-    engineError.value =
-      "Não foi possível baixar o motor SQLite (sql.js). Verifique sua conexão.";
-    console.error("Falha ao carregar o motor sql.js:", error);
-    return;
-  }
+    // Retoma o rascunho salvo deste caso, se houver.
+    const objectiveIds = c.objectives.map((o) => o.id);
+    const savedObjectiveId = getActiveObjective(caseId);
+    const objectiveId =
+      savedObjectiveId && objectiveIds.includes(savedObjectiveId)
+        ? savedObjectiveId
+        : (objectiveIds[0] ?? null);
 
-  try {
-    schema.value = readSchema(nextDb);
-  } catch (error) {
-    nextDb.close();
-    engineError.value = `Falha ao preparar o caso "${c.title}": o esquema do banco não pôde ser lido.`;
-    console.error("Falha ao ler o esquema do caso:", error);
-    return;
-  }
+    activeObjectiveId.value = objectiveId;
+    queryText.value = objectiveId ? getDraft(caseId, objectiveId) : "";
 
-  if (!nextDb || seq !== runSeq) {
-    nextDb?.close();
-    return;
+    result.value = null;
+    hasRun.value = false;
+    feedback.value = { type: "none", message: "" };
+  } finally {
+    isRestoringDraft = false;
   }
-
-  db.value?.close();
-  db.value = nextDb;
-  queryText.value = "";
-  result.value = null;
-  hasRun.value = false;
-  feedback.value = { type: "none", message: "" };
-  activeObjectiveId.value = c.objectives[0]?.id ?? null;
 }
 
 function selectObjective(objectiveId: string) {
+  if (objectiveId === activeObjectiveId.value) return;
   runSeq++;
+
+  // Envia o rascunho do objetivo que esta saindo antes de trocar, senao o
+  // debounce pendente salvaria o texto antigo no objetivo novo.
+  const caseId = activeCaseId.value;
+  const previousObjectiveId = activeObjectiveId.value;
+  if (previousObjectiveId) {
+    saveDraft(caseId, previousObjectiveId, queryText.value);
+    saveNow(caseId);
+  }
+
+  isRestoringDraft = true;
   activeObjectiveId.value = objectiveId;
+  queryText.value = getDraft(caseId, objectiveId);
+  isRestoringDraft = false;
+
+  setActiveObjective(caseId, objectiveId);
   feedback.value = { type: "none", message: "" };
 }
+
+watch([queryText, activeObjectiveId, activeCaseId], () => {
+  if (isRestoringDraft) return;
+  const caseId = activeCaseId.value;
+  const objectiveId = activeObjectiveId.value;
+  if (!objectiveId) return;
+  saveDraft(caseId, objectiveId, queryText.value);
+});
 
 async function runQuery() {
   if (isRunning.value) return;
@@ -222,19 +277,18 @@ async function execute(
     return;
   }
 
-  const refExecResult = (() => {
-    try {
-      return database.exec(objective.refSQL);
-    } catch {
-      return [];
-    }
-  })();
+  const comparison = matchesReference(
+    execResult,
+    database,
+    objective.refSQL,
+  );
 
-  const userRows = normalizeExecResult(execResult);
-  const refRows = normalizeExecResult(refExecResult);
-
-  if (!rowSetsMatch(userRows, refRows)) {
-    feedback.value = { type: "open", message: "AINDA EM ABERTO" };
+  if (!comparison.match) {
+    feedback.value = {
+      type: "open",
+      message: "AINDA EM ABERTO",
+      detail: comparison.detail,
+    };
     return;
   }
 
@@ -265,6 +319,9 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  // Sem isso a ultima tecla digitada antes de sair fica só no cache local.
+  saveNow(activeCaseId.value);
+  cancelPending();
   db.value?.close();
   db.value = null;
 });

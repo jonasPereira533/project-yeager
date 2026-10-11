@@ -1,5 +1,5 @@
 import vue from "@vitejs/plugin-vue";
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [vue()],
@@ -28,5 +28,9 @@ export default defineConfig({
     },
 
     chunkSizeWarningLimit: 800,
+  },
+  test: {
+    environment: "node",
+    include: ["src/**/*.spec.ts"],
   },
 });

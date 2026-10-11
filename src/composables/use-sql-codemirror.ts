@@ -8,24 +8,49 @@ import {
 import { basicSetup } from "codemirror";
 import { indentWithTab } from "@codemirror/commands";
 import { syntaxHighlighting } from "@codemirror/language";
-import { sql, SQLite, type SQLNamespace } from "@codemirror/lang-sql";
+import {
+  sql,
+  SQLite,
+  SQLDialect,
+  type SQLNamespace,
+} from "@codemirror/lang-sql";
 import type { SchemaTable } from "../types/case";
 import {
   yeagerEditorTheme,
   yeagerHighlightStyle,
 } from "../utils/sql-editor-theme";
 
-function toSqlNamespace(schema: SchemaTable[]): SQLNamespace {
-  const namespace: Record<string, string[]> = {};
+/**
+ * SQLite identifiers sao case-insensitive, mas o dialect do lang-sql assume
+ * que nao sao. Sem isso, um nome como `Cli_For` nao casa com o padrao usado
+ * para decidir entre completar puro ou envolver em crase, e toda sugestao de
+ * tabela volta cercada de crase.
+ */
+const SQLITE_DIALECT: SQLDialect = SQLDialect.define({
+  ...SQLite.spec,
+  caseInsensitiveIdentifiers: true,
+});
+
+/**
+ * O formato de `SQLNamespace` e recursivo: cada tabela vira um nivel com um
+ * `self` (o proprio nome da tabela, tipado como `class`) e `children` no
+ * formato de array, que e a unica forma que o lang-sql tipa como `property`.
+ * Passar um objeto aqui faria cada coluna virar `type` de novo.
+ */
+function toSqlNamespace(schema: SchemaTable[]): Record<string, SQLNamespace> {
+  const namespace: Record<string, SQLNamespace> = {};
   for (const table of schema) {
-    namespace[table.name] = table.columns.map((c) => c.name);
+    namespace[table.name] = {
+      self: { label: table.name, type: "class" },
+      children: table.columns.map((c) => c.name),
+    };
   }
   return namespace;
 }
 
 function buildSqlLanguage(schema: SchemaTable[]) {
   return sql({
-    dialect: SQLite,
+    dialect: SQLITE_DIALECT,
     schema: toSqlNamespace(schema),
     upperCaseKeywords: true,
   });

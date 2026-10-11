@@ -21,6 +21,9 @@ defineProps<{
     </div>
     <div v-else-if="feedback.type === 'open'" class="feedback-stamp open">
       {{ feedback.message }}
+      <p v-if="feedback.detail" class="feedback-detail">
+        {{ feedback.detail }}
+      </p>
     </div>
   </div>
 </template>
@@ -46,6 +49,14 @@ defineProps<{
   color: var(--teal);
   border-color: var(--teal);
   transform: rotate(-3deg);
+}
+.feedback-detail {
+  margin: 0.5rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-muted);
 }
 .feedback-error {
   font-family: var(--font-mono);

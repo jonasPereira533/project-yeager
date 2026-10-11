@@ -29,9 +29,15 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    function hasOnlyProgressFields() {
+    // Rascunhos de consulta guardam SQL livre, entao o tamanho e limitado
+    // para ninguem estourar o limite de 1 MB do documento.
+    function maxDraftSqlLength() {
+      return 20000;
+    }
+
+    function hasOnlyAppFields() {
       return request.resource.data.keys().hasOnly(
-        ['solvedByCase', 'hintsUsedByCase']
+        ['solvedByCase', 'hintsUsedByCase', 'draftsByCase']
       );
     }
 
@@ -49,13 +55,38 @@ service cloud.firestore {
       return !(name in request.resource.data) || isValidProgressMap(request.resource.data[name]);
     }
 
+    // Rascunhos tem um nivel a mais: por caso, um objetivo ativo e um mapa
+    // de objetivo para consulta.
+    function isValidDraftsMap(data) {
+      return data is map
+        && data.keys().hasOnly(validCaseIds())
+        && data.values().all(caseDraft,
+             caseDraft is map
+             && caseDraft.keys().hasOnly(['activeObjectiveId', 'queries'])
+             && (!('activeObjectiveId' in caseDraft)
+                 || caseDraft.activeObjectiveId in validObjectiveIds())
+             && (!('queries' in caseDraft)
+                 || (caseDraft.queries is map
+                     && caseDraft.queries.keys().hasOnly(validObjectiveIds())
+                     && caseDraft.queries.values().all(sql,
+                          sql is string && sql.size() <= maxDraftSqlLength())))
+           );
+    }
+
+    function isValidDraftsField(name) {
+      return !(name in request.resource.data) || isValidDraftsMap(request.resource.data[name]);
+    }
+
+    // Progresso nunca retrocede: um objetivo resolvido continua resolvido.
+    // Rascunhos sao o oposto, sao sobrescritos a cada tecla, entao ficam de
+    // fora dessa verificacao.
     function isMonotonic(field) {
       return !resource.data[field].exists()
         || (
              request.resource.data[field].keys().hasAll(resource.data[field].keys())
              && request.resource.data[field].keys().all(caseId,
                   !resource.data[field].keys().hasAny([caseId])
-                  || request.resource.data[field][caseId].hasAll(
+                  || resource.data[field][caseId].hasAll(
                        resource.data[field][caseId]
                      )
                )
@@ -67,19 +98,21 @@ service cloud.firestore {
       allow delete: if false;
 
       allow create: if isOwner(userId)
-        && hasOnlyProgressFields()
-        && isValidProgressField('solvedByCase')
-        && isValidProgressField('hintsUsedByCase');
-
-      allow update: if isOwner(userId)
-        && hasOnlyProgressFields()
+        && hasOnlyAppFields()
         && isValidProgressField('solvedByCase')
         && isValidProgressField('hintsUsedByCase')
+        && isValidDraftsField('draftsByCase');
+
+      allow update: if isOwner(userId)
+        && hasOnlyAppFields()
+        && isValidProgressField('solvedByCase')
+        && isValidProgressField('hintsUsedByCase')
+        && isValidDraftsField('draftsByCase')
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-             ['solvedByCase', 'hintsUsedByCase']
+             ['solvedByCase', 'hintsUsedByCase', 'draftsByCase']
            )
         && request.resource.data.diff(resource.data).affectedKeys().all(field,
-             isMonotonic(field)
+             field == 'draftsByCase' || isMonotonic(field)
            );
     }
 
