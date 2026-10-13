@@ -24,23 +24,11 @@ import {
 } from "../utils/sql-editor-setup";
 import { createColumnCompletionSource } from "../utils/sql-completion";
 
-/**
- * SQLite identifiers sao case-insensitive, mas o dialect do lang-sql assume
- * que nao sao. Sem isso, um nome como `Cli_For` nao casa com o padrao usado
- * para decidir entre completar puro ou envolver em crase, e toda sugestao de
- * tabela volta cercada de crase.
- */
 const SQLITE_DIALECT: SQLDialect = SQLDialect.define({
   ...SQLite.spec,
   caseInsensitiveIdentifiers: true,
 });
 
-/**
- * O formato de `SQLNamespace` e recursivo: cada tabela vira um nivel com um
- * `self` (o proprio nome da tabela, tipado como `class`) e `children` no
- * formato de array, que e a unica forma que o lang-sql tipa como `property`.
- * Passar um objeto aqui faria cada coluna virar `type` de novo.
- */
 function toSqlNamespace(schema: SchemaTable[]): Record<string, SQLNamespace> {
   const namespace: Record<string, SQLNamespace> = {};
   for (const table of schema) {

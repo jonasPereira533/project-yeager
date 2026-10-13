@@ -10,7 +10,6 @@ import {
   toQueryResult,
 } from "./compare-results";
 
-/** compareRowSets recebe linhas ja normalizadas, entao normalizamos aqui. */
 function match(user: unknown[][], ref: unknown[][]) {
   const norm = (rows: unknown[][]) => rows.map((row) => row.map(normalizeCell));
   return compareRowSets(norm(user), norm(ref));

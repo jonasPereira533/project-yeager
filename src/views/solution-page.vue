@@ -69,8 +69,6 @@ watch(
 
 let runSeq = 0;
 
-// Trava o watcher de rascunho enquanto um caso esta sendo carregado, para nao
-// gravar o texto antigo no caso novo.
 let isRestoringDraft = false;
 
 const activeCase = computed<Case | undefined>(() =>
@@ -139,9 +137,6 @@ const activeTab = ref<"ficha" | "investigacao">("ficha");
 async function loadCase(caseId: string) {
   const seq = ++runSeq;
 
-  // Precisa cobrir a funcao inteira: o activeCaseId muda na primeira linha e o
-  // texto so e restaurado no fim, entao o watcher dispararia no meio do await
-  // gravando o rascunho antigo no caso novo.
   isRestoringDraft = true;
   try {
     activeCaseId.value = caseId;
@@ -183,7 +178,6 @@ async function loadCase(caseId: string) {
     db.value?.close();
     db.value = nextDb;
 
-    // Retoma o rascunho salvo deste caso, se houver.
     const objectiveIds = c.objectives.map((o) => o.id);
     const savedObjectiveId = getActiveObjective(caseId);
     const objectiveId =
@@ -207,8 +201,6 @@ function selectObjective(objectiveId: string) {
   if (objectiveId === activeObjectiveId.value) return;
   runSeq++;
 
-  // Envia o rascunho do objetivo que esta saindo antes de trocar, senao o
-  // debounce pendente salvaria o texto antigo no objetivo novo.
   const caseId = activeCaseId.value;
   const previousObjectiveId = activeObjectiveId.value;
   if (previousObjectiveId) {
@@ -333,7 +325,6 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  // Sem isso a ultima tecla digitada antes de sair fica só no cache local.
   saveNow(activeCaseId.value);
   cancelPending();
   disarmReload();

@@ -10,11 +10,6 @@ import {
 } from "@codemirror/lang-sql";
 import type { SchemaTable } from "../types/case";
 
-/**
- * Espelha o que use-sql-codemirror monta. O composable depende de DOM
- * (onMounted), entao as funcoes puras sao replicadas aqui para testar o
- * formato do namespace e o comportamento do autocomplete sem browser.
- */
 const SQLITE_DIALECT: SQLDialect = SQLDialect.define({
   ...SQLite.spec,
   caseInsensitiveIdentifiers: true,
@@ -66,7 +61,6 @@ function complete(doc: string): Option[] {
   return result.options as Option[];
 }
 
-/** SQLNamespace e um union, entao o acesso por nome precisa de narrowing. */
 function tableLevel(name: string): {
   self: { label: string; type?: string };
   children: unknown;
@@ -97,8 +91,6 @@ describe("toSqlNamespace", () => {
   });
 
   it("nao usa o namespace quebrado Record<string, string[]>", () => {
-    // O formato antigo fazia addNamespaceObject tratar o array como nivel
-    // filho, entao o nome da tabela acabava tipado como `type`.
     expect(NAMESPACE).not.toHaveProperty("Cli_For.0");
   });
 });

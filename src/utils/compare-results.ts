@@ -1,20 +1,6 @@
 import type { Database, QueryExecResult } from "sql.js";
 import type { QueryResult } from "../types/case";
 
-/**
- * Comparacao de resultados de consulta.
- *
- * As regras sao deliberadamente tolerantes: o jogador nao precisa reproduzir a
- * query de referencia, so precisa chegar no mesmo resultado.
- *
- * 1. A ordem das linhas nao importa.
- * 2. A ordem das colunas dentro da linha nao importa.
- * 3. Quantidade de colunas e de linhas precisa bater exatamente.
- * 4. Duplicatas contam (um GROUP BY que conta duas vezes reprova).
- * 5. Valores sao tolerantes: 10 == '10', 'Sao Paulo' == 'sao paulo',
- *    '' == NULL e numeros comparam com tolerancia de ponto flutuante.
- */
-
 export interface NormalizedResult {
   columns: string[];
   rows: unknown[][];
@@ -40,10 +26,6 @@ const NO_RESULT: CompareOutcome = {
   detail: "A consulta nao devolveu um resultado pra comparar.",
 };
 
-/**
- * Colapsa espacos, remove acentos e joga pra minusculas, para que
- * 'SÃO PAULO ' e 'sao  paulo' virem a mesma coisa.
- */
 function foldText(value: string): string {
   return value
     .normalize("NFD")
@@ -53,7 +35,6 @@ function foldText(value: string): string {
     .trim();
 }
 
-/** Reconhece '10', ' 10 ' e '1e2' como numero, mas nao 'P001' nem '10.5.3'. */
 function asNumber(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -61,10 +42,6 @@ function asNumber(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-/**
- * Forma canonica de um valor, usada so pra comparacao, nunca pra exibicao.
- * Numero vira number, texto vira texto normalizado e vazio vira null.
- */
 export function normalizeCell(value: unknown): unknown {
   if (value === null || value === undefined) return null;
 
@@ -90,10 +67,6 @@ function numbersEqual(a: number, b: number): boolean {
   return Math.abs(a - b) <= NUMBER_EPSILON * scale;
 }
 
-/**
- * Dois valores da mesma posicao sao equivalentes quando normalizam igual ou
- * quando sao numeros dentro da tolerancia de ponto flutuante.
- */
 function cellsEqual(a: unknown, b: unknown): boolean {
   if (typeof a === "number" && typeof b === "number") {
     return numbersEqual(a, b);
@@ -101,12 +74,6 @@ function cellsEqual(a: unknown, b: unknown): boolean {
   return a === b;
 }
 
-/**
- * Duas linhas batem quando tem o mesmo tamanho e existe um jeito de casar
- * cada valor de uma com um valor da outra. Como a ordem das colunas nao
- * importa, procuramos o melhor emparelhamento guloso: datasets deste projeto
- * tem poucas linhas e poucas colunas, entao a busca e barata.
- */
 function rowsEqual(a: unknown[], b: unknown[]): boolean {
   if (a.length !== b.length) return false;
 
@@ -135,10 +102,6 @@ export function normalizeResult(result: QueryExecResult): NormalizedResult {
   };
 }
 
-/**
- * Normaliza todas as statements de uma execucao, nao so a ultima. Assim uma
- * instrucao de debug no fim da consulta nao invalida uma resposta correta.
- */
 export function normalizeExecResults(
   exec: QueryExecResult[],
 ): NormalizedResult[] {
@@ -160,10 +123,6 @@ function columnCountDetail(user: number, ref: number): string {
   return `Numero de colunas diferente: voce trouxe ${user}, o esperado e ${ref}.`;
 }
 
-/**
- * Compara dois conjuntos de linhas ja normalizadas.
- * Multiconjunto: ordem ignora, duplicatas contam.
- */
 export function compareRowSets(
   user: unknown[][],
   ref: unknown[][],
@@ -188,9 +147,6 @@ export function compareRowSets(
     };
   }
 
-  // Emparelhamento guloso: cada linha da referencia claims a primeira linha
-  // ainda livre do jogador que bate com ela. Como linhas quase iguais sao
-  // intercambiaveis, o primeiro encaixe nunca prejudica o resto.
   const taken = new Array<boolean>(user.length).fill(false);
 
   for (const refRow of ref) {
@@ -216,11 +172,6 @@ export function compareRowSets(
   return { match: true };
 }
 
-/**
- * Tenta casar cada conjunto de resultados do jogador contra a referencia.
- * Guarda a primeira falha informative como fallback pra explicar o erro caso
- * nenhuma das tentativas passe.
- */
 function compareAgainstRef(
   results: NormalizedResult[],
   ref: NormalizedResult,
@@ -243,11 +194,6 @@ function compareAgainstRef(
   return fallback;
 }
 
-/**
- * Compara o resultado do jogador com o da query de referencia.
- * Qualquer conjunto de resultados da execucao do jogador serve, desde que bata
- * com a referencia.
- */
 export function matchesReference(
   exec: QueryExecResult[],
   db: Database,
@@ -267,14 +213,6 @@ export function matchesReference(
   return compareAgainstRef(normalizeExecResults(exec), ref);
 }
 
-/**
- * Limpa o rotulo de uma coluna para exibicao.
- *
- * O SQLite usa o texto-fonte da expressao do SELECT como nome da coluna
- * quando nao ha alias, entao um comentario no meio da expressao vaza pro
- * cabecalho. Isso so afeta a apresentacao: a comparacao nunca le os nomes
- * das colunas.
- */
 export function cleanColumnLabel(label: string, index: number): string {
   const cleaned = label
     .replace(/\/\*[\s\S]*?\*\//g, " ")
