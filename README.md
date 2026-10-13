@@ -154,6 +154,14 @@ usado pela VR Tech (módulos de vendas, estoque, financeiro, fiscal e permissõe
 - Editor CodeMirror 6 com dialeto SQLite case-insensitive, autocomplete de tabelas e colunas em dois
   níveis conforme o caso muda, `Tab` para indentar, quebra de linha automática e tema próprio (âmbar
   sobre fundo escuro).
+- As colunas oferecidas são as das tabelas que a frase atual usa de verdade. O `lang-sql` sozinho só
+  completa coluna depois do ponto (`Cli_For.`); uma segunda fonte de autocomplete lê o `FROM` e
+  completa também no `SELECT`, no `WHERE`, no `GROUP BY` e no `ORDER BY`. Com uma tabela no escopo a
+  coluna aparece crua, com duas ou mais vem qualificada (`Cli_For.Nome`) — `Nome` existe em cinco
+  tabelas do app, e sem o prefixo o SQLite resolveria pelo primeiro nome que achasse.
+- O autocomplete pode ser desligado pelo botão ao lado de **Investigar**, para escrever a consulta do
+  zero sem o editor entregando nome de tabela e coluna. A escolha fica no `localStorage`, sobrevive
+  ao refresh e vale para todos os casos; o padrão continua ligado.
 
 **Validação**
 
@@ -186,6 +194,10 @@ usado pela VR Tech (módulos de vendas, estoque, financeiro, fiscal e permissõe
 **Experiência**
 
 - Tema noir coerente com a identidade do produto (fundo `#14171c`, âmbar `#e8a33d`).
+- Confirmação do próprio navegador antes de recarregar com trabalho não conferido: some depois de
+  rodar a consulta e volta a aparecer na hora que você mexe no texto de novo. O aviso é o nativo —
+  desde o Chrome 88 e o Firefox 115 o navegador ignora qualquer texto customize —, e o listener só
+  fica registrado enquanto há o que proteger, para não desligar o cache de ida e volta.
 - Tipografia de máquinas de escrever (`Special Elite`) para títulos e `IBM Plex Mono` para o
   conteúdo técnico — o mesmo par do app.
 - Layout responsivo, navegação por teclado, `aria-*` nos componentes interativos, skip link e
@@ -365,13 +377,17 @@ project-yeager/
 │   ├── composables/
 │   │   ├── use-auth.ts           # popup do Google e classificação de erros
 │   │   ├── use-drafts.ts         # rascunho de consulta por caso/objetivo
+│   │   ├── use-editor-prefs.ts   # preferência do editor no localStorage
 │   │   ├── use-progress.ts       # XP, dicas e migração visitante → usuário
+│   │   ├── use-reload-guard.ts   # confirmação do navegador antes de recarregar
 │   │   ├── use-sql-codemirror.ts # instância do CodeMirror com o schema do caso
 │   │   └── use-sql-engine.ts     # carrega sql.js e monta o banco do caso
 │   ├── data/cases.ts             # todos os casos, objetivos e gabaritos
 │   ├── types/case.ts             # contrato de Case, Objective e níveis
-│   ├── utils/                    # comparação de resultados e tema do editor
+│   ├── utils/                    # comparação de resultados, tema e setup do editor
 │   │                              # *.spec.ts: testes de regras e de comparação
+│   │                              # sql-completion: colunas do escopo da frase
+│   │                              # reload-guard: quando avisar antes de recarregar
 │   ├── views/                    # main-page, case-page, solution-page, 404
 │   ├── firebase.ts               # inicialização do app Firebase
 │   ├── router/index.ts           # rotas e recuperação de chunk quebrado
@@ -431,9 +447,10 @@ arredondar não reprovam. O que importa é trazer a mesma resposta. Quando não 
 que não conferiu — quantas linhas, quantas colunas ou valores divergentes — sem entregar a query.
 
 **Meu rascunho some se eu fechar a aba?**
-Como visitante, não: fica no `localStorage`. Com login, vai para o Firestore e volta em qualquer
-máquina. O rascunho é por caso **e** por objetivo, então trabalhar no o3 não apaga o que você
-escreveu no o1.
+Como visitante, não: fica no `localStorage`, gravado a cada tecla. Com login, vai para o Firestore e
+volta em qualquer máquina. O rascunho é por caso **e** por objetivo, então trabalhar no o3 não apaga
+o que você escreveu no o1. O navegador pode pedir confirmação ao fechar ou dar F5, mas é o aviso
+padrão dele, em cima de trabalho ainda não conferido — o texto em si nunca se perde.
 
 **Posso usar `true` numa coluna `BOOLEAN`?**
 Pode. No SQLite não existe tipo booleano de verdade — a coluna é `NUMERIC` e o valor volta como `1`

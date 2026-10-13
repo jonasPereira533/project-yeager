@@ -14,10 +14,12 @@ import { CASES } from "../data/cases";
 import { useSqlEngine } from "../composables/use-sql-engine";
 import { useProgress } from "../composables/use-progress";
 import { useDrafts } from "../composables/use-drafts";
+import { useReloadGuard } from "../composables/use-reload-guard";
 import {
   matchesReference,
   toQueryResult,
 } from "../utils/compare-results";
+import { isCaseComplete } from "../utils/case-completion";
 import type {
   Case,
   Feedback,
@@ -29,7 +31,7 @@ import { useRoute } from "vue-router";
 import CaseRules from "../components/solution-page-components/case-rules.vue";
 
 const { createDatabase } = useSqlEngine();
-const { markSolved, countSolved } = useProgress();
+const { markSolved, isSolved } = useProgress();
 const {
   getDraft,
   getActiveObjective,
@@ -50,6 +52,21 @@ const feedback = ref<Feedback>({ type: "none", message: "" });
 const engineError = ref("");
 const isRunning = ref(false);
 
+const settledQuery = ref("");
+
+const { setState: setReloadState, disarm: disarmReload } = useReloadGuard();
+
+watch(
+  [queryText, settledQuery],
+  () => {
+    setReloadState({
+      settled: settledQuery.value,
+      current: queryText.value,
+    });
+  },
+  { immediate: true },
+);
+
 let runSeq = 0;
 
 // Trava o watcher de rascunho enquanto um caso esta sendo carregado, para nao
@@ -66,19 +83,7 @@ const activeObjective = computed(
     ) ?? null,
 );
 
-let solvedBaseline = 0;
 const showCompleteModal = ref(false);
-
-watch(
-  () => (activeCase.value ? countSolved(activeCase.value.id) : 0),
-  (solved) => {
-    const caseItem = activeCase.value;
-    const total = caseItem?.objectives.length ?? 0;
-    showCompleteModal.value =
-      solvedBaseline < total && solved >= total && total > 0;
-    solvedBaseline = solved;
-  },
-);
 
 const BARE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_$]*$/;
 
@@ -140,7 +145,6 @@ async function loadCase(caseId: string) {
   isRestoringDraft = true;
   try {
     activeCaseId.value = caseId;
-    solvedBaseline = countSolved(caseId);
     showCompleteModal.value = false;
     engineError.value = "";
 
@@ -189,6 +193,7 @@ async function loadCase(caseId: string) {
 
     activeObjectiveId.value = objectiveId;
     queryText.value = objectiveId ? getDraft(caseId, objectiveId) : "";
+    settledQuery.value = queryText.value;
 
     result.value = null;
     hasRun.value = false;
@@ -214,6 +219,7 @@ function selectObjective(objectiveId: string) {
   isRestoringDraft = true;
   activeObjectiveId.value = objectiveId;
   queryText.value = getDraft(caseId, objectiveId);
+  settledQuery.value = queryText.value;
   isRestoringDraft = false;
 
   setActiveObjective(caseId, objectiveId);
@@ -241,6 +247,7 @@ async function runQuery() {
 
   hasRun.value = true;
   isRunning.value = true;
+  settledQuery.value = queryText.value;
 
   try {
     await execute(database, sql, caseId, objective, seq);
@@ -312,6 +319,13 @@ async function execute(
         ? `CHAMADO ENCERRADO · +${objective.xp} XP`
         : "JÁ RESOLVIDO",
   };
+
+  if (outcome === "new" && activeCase.value) {
+    showCompleteModal.value = isCaseComplete(
+      activeCase.value.objectives,
+      (objectiveId) => isSolved(caseId, objectiveId),
+    );
+  }
 }
 
 onMounted(() => {
@@ -322,6 +336,7 @@ onUnmounted(() => {
   // Sem isso a ultima tecla digitada antes de sair fica só no cache local.
   saveNow(activeCaseId.value);
   cancelPending();
+  disarmReload();
   db.value?.close();
   db.value = null;
 });
