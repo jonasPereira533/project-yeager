@@ -57,27 +57,27 @@ let runSeq = 0;
 let isRestoringDraft = false;
 
 const activeCase = computed<Case | undefined>(() =>
-  CASES.find((c) => c.id === activeCaseId.value),
+    CASES.find((c) => c.id === activeCaseId.value),
 );
 const activeObjective = computed(
-  () =>
-    activeCase.value?.objectives.find(
-      (o) => o.id === activeObjectiveId.value,
-    ) ?? null,
+    () =>
+        activeCase.value?.objectives.find(
+            (o) => o.id === activeObjectiveId.value,
+        ) ?? null,
 );
 
 let solvedBaseline = 0;
 const showCompleteModal = ref(false);
 
 watch(
-  () => (activeCase.value ? countSolved(activeCase.value.id) : 0),
-  (solved) => {
-    const caseItem = activeCase.value;
-    const total = caseItem?.objectives.length ?? 0;
-    showCompleteModal.value =
-      solvedBaseline < total && solved >= total && total > 0;
-    solvedBaseline = solved;
-  },
+    () => (activeCase.value ? countSolved(activeCase.value.id) : 0),
+    (solved) => {
+      const caseItem = activeCase.value;
+      const total = caseItem?.objectives.length ?? 0;
+      showCompleteModal.value =
+          solvedBaseline < total && solved >= total && total > 0;
+      solvedBaseline = solved;
+    },
 );
 
 const BARE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_$]*$/;
@@ -88,26 +88,26 @@ function quoteIdentifier(name: string): string {
 
 function readSchema(database: Database): SchemaTable[] {
   const tablesRes = database.exec(
-    "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;",
+      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;",
   );
   if (!tablesRes.length) return [];
 
   return tablesRes[0].values
-    .map((row) => String(row[0]))
-    .filter((tableName) => !tableName.startsWith("sqlite_"))
-    .map((tableName) => {
-      const quoted = BARE_IDENTIFIER.test(tableName)
-        ? tableName
-        : quoteIdentifier(tableName);
-      const info = database.exec(`PRAGMA table_info(${quoted});`);
-      const columns = info.length
-        ? info[0].values.map((col) => ({
-            name: String(col[1]),
-            type: String(col[2]),
-          }))
-        : [];
-      return { name: tableName, columns };
-    });
+      .map((row) => String(row[0]))
+      .filter((tableName) => !tableName.startsWith("sqlite_"))
+      .map((tableName) => {
+        const quoted = BARE_IDENTIFIER.test(tableName)
+            ? tableName
+            : quoteIdentifier(tableName);
+        const info = database.exec(`PRAGMA table_info(${quoted});`);
+        const columns = info.length
+            ? info[0].values.map((col) => ({
+              name: String(col[1]),
+              type: String(col[2]),
+            }))
+            : [];
+        return { name: tableName, columns };
+      });
 }
 
 const route = useRoute();
@@ -157,7 +157,7 @@ async function loadCase(caseId: string) {
       nextDb = await createDatabase(c.setupSQL);
     } catch (error) {
       engineError.value =
-        "Não foi possível baixar o motor SQLite (sql.js). Verifique sua conexão.";
+          "Não foi possível baixar o motor SQLite (sql.js). Verifique sua conexão.";
       console.error("Falha ao carregar o motor sql.js:", error);
       return;
     }
@@ -183,9 +183,9 @@ async function loadCase(caseId: string) {
     const objectiveIds = c.objectives.map((o) => o.id);
     const savedObjectiveId = getActiveObjective(caseId);
     const objectiveId =
-      savedObjectiveId && objectiveIds.includes(savedObjectiveId)
-        ? savedObjectiveId
-        : (objectiveIds[0] ?? null);
+        savedObjectiveId && objectiveIds.includes(savedObjectiveId)
+            ? savedObjectiveId
+            : (objectiveIds[0] ?? null);
 
     activeObjectiveId.value = objectiveId;
     queryText.value = objectiveId ? getDraft(caseId, objectiveId) : "";
@@ -250,11 +250,11 @@ async function runQuery() {
 }
 
 async function execute(
-  database: Database,
-  sql: string,
-  caseId: string,
-  objective: Objective | null,
-  seq: number,
+    database: Database,
+    sql: string,
+    caseId: string,
+    objective: Objective | null,
+    seq: number,
 ) {
   let execResult;
   try {
@@ -264,8 +264,8 @@ async function execute(
     feedback.value = {
       type: "error",
       message:
-        "Erro na consulta: " +
-        (err instanceof Error ? err.message : String(err)),
+          "Erro na consulta: " +
+          (err instanceof Error ? err.message : String(err)),
     };
     return;
   }
@@ -278,9 +278,9 @@ async function execute(
   }
 
   const comparison = matchesReference(
-    execResult,
-    database,
-    objective.refSQL,
+      execResult,
+      database,
+      objective.refSQL,
   );
 
   if (!comparison.match) {
@@ -300,7 +300,7 @@ async function execute(
     feedback.value = {
       type: "error",
       message:
-        "Consulta correta, mas não foi possível salvar seu progresso. Verifique sua conexão.",
+          "Consulta correta, mas não foi possível salvar seu progresso. Verifique sua conexão.",
     };
     return;
   }
@@ -308,9 +308,9 @@ async function execute(
   feedback.value = {
     type: "solved",
     message:
-      outcome === "new"
-        ? `CHAMADO ENCERRADO · +${objective.xp} XP`
-        : "JÁ RESOLVIDO",
+        outcome === "new"
+            ? `CHAMADO ENCERRADO · +${objective.xp} XP`
+            : "JÁ RESOLVIDO",
   };
 }
 
@@ -331,7 +331,7 @@ onUnmounted(() => {
   <div v-if="!activeCase" class="not-found">
     <p>Caso não encontrado.</p>
     <RouterLink :to="{ name: 'main-page' }"
-      >← Voltar pra lista de casos</RouterLink
+    >← Voltar pra lista de casos</RouterLink
     >
   </div>
 
@@ -343,7 +343,7 @@ onUnmounted(() => {
         <span class="nivel">{{ activeCase.level }}</span>
       </div>
       <RouterLink :to="{ name: 'case-page' }"
-        >← Voltar pra lista de casos</RouterLink
+      >← Voltar pra lista de casos</RouterLink
       >
     </div>
 
@@ -352,47 +352,51 @@ onUnmounted(() => {
       <CaseTabs v-model="activeTab" :tabs="TABS" />
 
       <section
-        v-show="activeTab === 'ficha'"
-        id="panel-ficha"
-        class="desk"
-        role="tabpanel"
-        aria-labelledby="tab-ficha"
-        tabindex="0"
+          v-show="activeTab === 'ficha'"
+          id="panel-ficha"
+          class="desk"
+          role="tabpanel"
+          aria-labelledby="tab-ficha"
+          tabindex="0"
       >
         <DossierBriefing :active-case="activeCase" />
         <CaseRules />
       </section>
 
       <section
-        v-show="activeTab === 'investigacao'"
-        id="panel-investigacao"
-        class="desk"
-        role="tabpanel"
-        aria-labelledby="tab-investigacao"
-        tabindex="0"
+          v-show="activeTab === 'investigacao'"
+          id="panel-investigacao"
+          class="desk"
+          role="tabpanel"
+          aria-labelledby="tab-investigacao"
+          tabindex="0"
       >
         <div class="investigacao-grid">
           <aside>
             <ObjectiveList
-              :active-case="activeCase"
-              :active-objective-id="activeObjectiveId"
-              @select="selectObjective"
+                :active-case="activeCase"
+                :active-objective-id="activeObjectiveId"
+                @select="selectObjective"
             />
             <SchemaPanel :tables="schema" />
           </aside>
 
           <div class="investigation-main">
             <QuestionPanel
-              :objective="activeObjective"
-              :case-id="activeCaseId"
+                :objective="activeObjective"
+                :case-id="activeCaseId"
             />
+            <!-- O carimbo agora fica dentro do editor, na linha do botão -->
             <SqlEditor
-              v-model="queryText"
-              :schema="schema"
-              :running="isRunning"
-              @run="runQuery"
-            />
-            <FeedbackStamp :feedback="feedback" />
+                v-model="queryText"
+                :schema="schema"
+                :running="isRunning"
+                @run="runQuery"
+            >
+              <template #feedback>
+                <FeedbackStamp :feedback="feedback" />
+              </template>
+            </SqlEditor>
             <ResultsTable :result="result" :has-run="hasRun" />
           </div>
         </div>
@@ -400,9 +404,9 @@ onUnmounted(() => {
     </template>
 
     <CaseCompleteModal
-      v-if="showCompleteModal && activeCase"
-      :active-case="activeCase"
-      @close="showCompleteModal = false"
+        v-if="showCompleteModal && activeCase"
+        :active-case="activeCase"
+        @close="showCompleteModal = false"
     />
   </div>
 </template>
@@ -445,10 +449,25 @@ onUnmounted(() => {
 }
 
 .case-header a {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
   color: var(--amber);
+  text-decoration: none;
+  border: 1px solid var(--rule);
+  padding: 0.25rem 0.6rem;
+  border-radius: 2px;
   display: inline-block;
   cursor: pointer;
+  transition: border-color 0.2s;
 }
+.case-header a:hover {
+  border-color: var(--amber);
+}
+.case-header a:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
 .investigacao-grid {
   display: grid;
   grid-template-columns: 300px 1fr;
