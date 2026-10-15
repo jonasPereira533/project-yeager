@@ -114,7 +114,8 @@ const CASES_BASICO: Case[] = [
         id: "o1",
         xp: 10,
         question:
-          "Liste os produtos cuja quantidade em estoque está abaixo do mínimo configurado.",
+          "Liste os produtos cuja quantidade em estoque (Qtde) está abaixo do mínimo configurado (Estoque_Minimo). " +
+            "Essa consulta deve conter colunas Filial, Produto, Qtde e Estoque_Minimo.",
         hint: "Compare duas colunas da mesma linha na cláusula WHERE (Qtde menor que Estoque_Minimo).",
         refSQL:
           "SELECT Filial, Produto, Qtde, Estoque_Minimo FROM Estoque_Atual WHERE Qtde < Estoque_Minimo;",
@@ -122,7 +123,8 @@ const CASES_BASICO: Case[] = [
       {
         id: "o2",
         xp: 15,
-        question: "Entre esses, filtre apenas os produtos da Filial 2.",
+        question: "EEntre os produtos abaixo do mínimo, liste apenas os da Filial 2." +
+            " Traga somente as colunas Produto, Qtde e Estoque_Minimo,.",
         hint: "Adicione mais uma condição com AND pra restringir a uma filial específica.",
         refSQL:
           "SELECT Produto, Qtde, Estoque_Minimo FROM Estoque_Atual WHERE Qtde < Estoque_Minimo AND Filial = 2;",
@@ -131,7 +133,8 @@ const CASES_BASICO: Case[] = [
         id: "o3",
         xp: 20,
         question:
-          "Conte quantos produtos estão abaixo do mínimo em cada filial, da maior pra menor.",
+          "Conte quantos produtos estão abaixo do mínimo em cada filial. Traga duas colunas:" +
+            " a Filial e a quantidade de produtos, com a filial que tem mais produtos abaixo do mínimo primeiro.",
         hint: "Agrupe por Filial e conte quantas linhas sobram depois do filtro.",
         refSQL:
           "SELECT Filial, COUNT(*) AS total FROM Estoque_Atual WHERE Qtde < Estoque_Minimo GROUP BY Filial ORDER BY total DESC;",
@@ -169,7 +172,8 @@ const CASES_BASICO: Case[] = [
         id: "o1",
         xp: 10,
         question:
-          "Liste nome e tipo dos motivos que ainda estão ativos, em ordem alfabética.",
+          "Liste o nome e o tipo dos motivos que ainda estão ativos, em ordem alfabética pelo nome." +
+            "Essa consulta deve retornar as colunas nome e tipo",
         hint: "Filtre pelos inativos = 0 e use ORDER BY pra organizar alfabeticamente.",
         refSQL:
           "SELECT Nome, Tipo FROM MotivoCancelamento WHERE Inativo = 0 ORDER BY Nome;",
@@ -177,7 +181,8 @@ const CASES_BASICO: Case[] = [
       {
         id: "o2",
         xp: 15,
-        question: "Encontre os motivos cujo nome contém a palavra 'Erro'.",
+        question: "Encontre os motivos cujo nome contém a palavra 'Erro'. retorne a consulta com" +
+            " as colunas Codigo, Nome e Inativo.",
         hint: "LIKE '%texto%' encontra um trecho em qualquer posição do campo.",
         refSQL:
           "SELECT Codigo, Nome, Inativo FROM MotivoCancelamento WHERE Nome LIKE '%Erro%';",
@@ -185,7 +190,8 @@ const CASES_BASICO: Case[] = [
       {
         id: "o3",
         xp: 20,
-        question: "Conte quantos motivos inativos existem por Tipo.",
+        question: "Conte quantos motivos inativos existem em cada Tipo. " +
+            "O cliente deseja saber apenas o Tipo e a quantidade de motivos de cancelamentos.",
         hint: "Agrupe por Tipo depois de filtrar só os inativos.",
         refSQL:
           "SELECT Tipo, COUNT(*) AS total FROM MotivoCancelamento WHERE Inativo = 1 GROUP BY Tipo;",
@@ -242,7 +248,7 @@ const CASES_INTERMEDIARIO: Case[] = [
         id: "o1",
         xp: 15,
         question:
-          "Liste sequência, data e total das vendas que não foram efetivadas.",
+          "Liste a sequência, a data e o total das vendas que não foram efetivadas.",
         hint: "Um filtro simples em Efetivado já resolve.",
         refSQL:
           "SELECT Sequencia, Data, Total_Final FROM Movimento WHERE Efetivado = 0;",
@@ -251,7 +257,7 @@ const CASES_INTERMEDIARIO: Case[] = [
         id: "o2",
         xp: 20,
         question:
-          "Agora mostre o nome do cliente em cada uma dessas vendas não efetivadas.",
+          "Para essas mesmas vendas não efetivadas, mostre o nome do cliente a sequencia e o total de cada compra",
         hint: "Junte Movimento com Cli_For pelo código do cliente pra trazer o nome.",
         refSQL:
           "SELECT c.Nome, m.Sequencia, m.Total_Final FROM Movimento m JOIN Cli_For c ON c.Codigo = m.Cli_For__Codigo WHERE m.Efetivado = 0;",
@@ -260,7 +266,8 @@ const CASES_INTERMEDIARIO: Case[] = [
         id: "o3",
         xp: 30,
         question:
-          "Encontre os caixas que tiveram mais de uma venda não efetivada.",
+          "Descubra quais caixas tiveram mais de uma venda não efetivada. " +
+            "O cliente deseja visualizar apenas o caixa e a quantidade de vendas não efetivada",
         hint: "Agrupe pelo caixa e use HAVING pra manter só quem apareceu mais de uma vez.",
         refSQL:
           "SELECT Caixa__Codigo, COUNT(*) AS total FROM Movimento WHERE Efetivado = 0 GROUP BY Caixa__Codigo HAVING COUNT(*) > 1;",
@@ -307,7 +314,8 @@ const CASES_INTERMEDIARIO: Case[] = [
         id: "o1",
         xp: 15,
         question:
-          "Liste as linhas de venda em que o valor unitário é diferente do preço de tabela do produto.",
+          "Liste as linhas de venda em que o valor unitário vendido é diferente do preço de tabela do produto (Preco1)." +
+            " Traga as colunas Sequencia, Nome (do produto), Valor_Unit e Preco1, nessa ordem.",
         hint: "Junte Movimento_Produto com Produto pelo código; compare Valor_Unit com Preco1 usando <>.",
         refSQL:
           "SELECT mp.Sequencia, p.Nome, mp.Valor_Unit, p.Preco1 FROM Movimento_Produto mp JOIN Produto p ON p.Codigo = mp.Produto__Codigo WHERE mp.Valor_Unit <> p.Preco1;",
@@ -316,7 +324,8 @@ const CASES_INTERMEDIARIO: Case[] = [
         id: "o2",
         xp: 20,
         question:
-          "Filtre apenas os itens vendidos ABAIXO do preço de tabela, mostrando a diferença de valor.",
+          "Entre essas vendas, considere apenas os itens vendidos ABAIXO do preço de tabela e mostre quanto foi dado de" +
+            " desconto em cada um (preço de tabela menos valor vendido). Traga as colunas Sequencia, Nome (do produto) e a diferença.",
         hint: "Troque a comparação por < pra pegar só o que foi vendido mais barato que a tabela.",
         refSQL:
           "SELECT mp.Sequencia, p.Nome, (p.Preco1 - mp.Valor_Unit) AS diferenca FROM Movimento_Produto mp JOIN Produto p ON p.Codigo = mp.Produto__Codigo WHERE mp.Valor_Unit < p.Preco1;",
@@ -325,7 +334,8 @@ const CASES_INTERMEDIARIO: Case[] = [
         id: "o3",
         xp: 30,
         question:
-          "Entre os vendidos abaixo do preço, encontre os produtos com mais de uma ocorrência, do mais frequente pro menos.",
+          "Entre os itens vendidos abaixo do preço de tabela, descubra quais produtos aparecem mais de uma vez. " +
+            "Traga duas colunas: o Nome do produto e a quantidade de vendas abaixo do preço, com o produto mais frequente primeiro.",
         hint: "Agrupe pelo produto, conte as ocorrências e use HAVING > 1.",
         refSQL:
           "SELECT p.Nome, COUNT(*) AS total FROM Movimento_Produto mp JOIN Produto p ON p.Codigo = mp.Produto__Codigo WHERE mp.Valor_Unit < p.Preco1 GROUP BY p.Codigo HAVING COUNT(*) > 1 ORDER BY total DESC;",
@@ -375,7 +385,7 @@ const CASES_INTERMEDIARIO: Case[] = [
         id: "o2",
         xp: 20,
         question:
-          "Mostre o nome do caixa (não só o código) para os registros sem fechamento da Filial 1.",
+          "Mostre o nome do caixa (não só o código) e a abertura para os registros sem fechamento da Filial 1.",
         hint: "Junte com Caixas pra pegar o nome, e adicione o filtro de filial.",
         refSQL:
           "SELECT c.Nome, f.Abertura FROM Financeiro_Caixa_Mov f JOIN Caixas c ON c.Codigo = f.Caixa WHERE f.Fechamento IS NULL AND f.Filial = 1;",
@@ -384,7 +394,8 @@ const CASES_INTERMEDIARIO: Case[] = [
         id: "o3",
         xp: 30,
         question:
-          "Encontre os caixas (pelo nome) que ficaram sem fechamento mais de uma vez, considerando todas as filiais.",
+          "Considerando todas as filiais, descubra quais caixas ficaram sem fechamento mais de uma vez." +
+            " Traga duas colunas: o Nome do caixa e a quantidade de registros sem fechamento.",
         hint: "Agrupe pelo caixa (não pelo nome, pra evitar duplicar por acento) e use HAVING.",
         refSQL:
           "SELECT c.Nome, COUNT(*) AS total FROM Financeiro_Caixa_Mov f JOIN Caixas c ON c.Codigo = f.Caixa WHERE f.Fechamento IS NULL GROUP BY c.Codigo HAVING COUNT(*) > 1;",
@@ -406,7 +417,8 @@ const CASES_AVANCADO: Case[] = [
     category: "Suporte Técnico — Marketing/Vendas",
     tables: "Movimento, Cli_For",
     context:
-      "O time de marketing quer montar uma campanha de reativação e pediu uma lista de clientes que compraram só uma vez — mas somente os que valem a pena priorizar: aqueles cuja compra foi mais alta que o ticket médio dos clientes recorrentes.",
+      "O time de marketing quer montar uma campanha de reativação e pediu uma lista de clientes que compraram só uma vez " +
+        " mas somente os que valem a pena priorizar: aqueles cuja compra foi mais alta que o ticket médio dos clientes recorrentes. ",
     setupSQL: `
       CREATE TABLE Cli_For (Codigo INTEGER PRIMARY KEY, Nome TEXT);
       INSERT INTO Cli_For VALUES
@@ -447,7 +459,7 @@ const CASES_AVANCADO: Case[] = [
         xp: 30,
         question:
           "Calcule o valor médio das compras feitas por clientes recorrentes (2 ou mais compras efetivadas).",
-        hint: "Primeiro identifique quem tem 2+ compras (uma CTE ajuda), depois calcule a média dessas compras.",
+        hint: "Primeiro identifique quem tem 2+ compras (uma CTE ajuda), depois calcule a média dessas compras. Retorne apenas o cliente e o valor total",
         refSQL: `WITH compras AS (
                    SELECT Cli_For__Codigo, Total_Final FROM Movimento WHERE Efetivado = 1
                  ),
@@ -462,7 +474,8 @@ const CASES_AVANCADO: Case[] = [
         id: "o3",
         xp: 40,
         question:
-          "Agora junte as duas análises: mostre os clientes de compra única cujo valor superou a média calculada no objetivo anterior.",
+          "Agora junte as duas análises: Mostre os clientes de compra única cujo valor superou a média do objetivo anterior. " +
+            "Traga as colunas Nome e o valor da compra, nessa ordem.",
         hint: "Uma consulta com WITH ajuda a organizar: primeiro quem comprou uma vez, depois a média dos recorrentes, por fim comparar as duas coisas.",
         refSQL: `WITH compras AS (
                    SELECT Cli_For__Codigo, Total_Final FROM Movimento WHERE Efetivado = 1
@@ -517,7 +530,8 @@ const CASES_AVANCADO: Case[] = [
         id: "o1",
         xp: 20,
         question:
-          "Liste as linhas de venda em que o valor unitário ficou abaixo do custo do produto.",
+          "Liste as linhas de venda em que o valor unitário ficou abaixo do custo do produto (Custo1). " +
+            "Venda exatamente pelo custo não conta como prejuízo. Traga as colunas Sequencia, Nome (do produto), valor unitario e custo, nessa ordem.",
         hint: "Compare Valor_Unit com Custo1 usando < depois do JOIN.",
         refSQL:
           "SELECT mp.Sequencia, p.Nome, mp.Valor_Unit, p.Custo1 FROM Movimento_Produto mp JOIN Produto p ON p.Codigo = mp.Produto__Codigo WHERE mp.Valor_Unit < p.Custo1;",
@@ -526,7 +540,8 @@ const CASES_AVANCADO: Case[] = [
         id: "o2",
         xp: 30,
         question:
-          "Calcule o prejuízo de cada linha (diferença de preço vezes quantidade), do maior pro menor.",
+          "Para essas mesmas linhas, calcule o prejuízo de cada uma: (custo − valor unitário) × quantidade." +
+            " Traga as colunas Sequencia, Nome (do produto) e o prejuízo, ordenadas do maior prejuízo para o menor.",
         hint: "Multiplique a diferença de preço pela quantidade pra chegar no prejuízo da linha.",
         refSQL:
           "SELECT mp.Sequencia, p.Nome, (p.Custo1 - mp.Valor_Unit) * mp.Qtde AS prejuizo FROM Movimento_Produto mp JOIN Produto p ON p.Codigo = mp.Produto__Codigo WHERE mp.Valor_Unit < p.Custo1 ORDER BY prejuizo DESC;",
@@ -535,7 +550,8 @@ const CASES_AVANCADO: Case[] = [
         id: "o3",
         xp: 40,
         question:
-          "Some o prejuízo total por produto e mostre apenas os que ficaram acima da média de prejuízo entre os produtos afetados.",
+          "Some o prejuízo de cada produto e calcule a média desses totais por produto." +
+            " Mostre apenas os produtos cujo total ficou acima dessa média. Traga as colunas Nome (do produto) e o prejuízo total.",
         hint: "Some o prejuízo por produto numa CTE, depois compare cada total com a média de todos os totais usando uma subconsulta.",
         refSQL: `WITH prejuizo_linha AS (
                    SELECT mp.Produto__Codigo, (p.Custo1 - mp.Valor_Unit) * mp.Qtde AS prejuizo
@@ -588,7 +604,8 @@ const CASES_AVANCADO: Case[] = [
         id: "o1",
         xp: 20,
         question:
-          "Some o total vendido (efetivado) por vendedor, em cada filial.",
+          "Some o total vendido (efetivado) por vendedor, em cada filial." +
+            " O relatorio deve conter na ordem o código da filial, nome do vendedor e o total vendido.",
         hint: "SUM com GROUP BY por filial e vendedor já dá o total de cada um.",
         refSQL:
           "SELECT Filial__Codigo, Vendedor__Codigo, SUM(Total_Final) AS total FROM Movimento WHERE Efetivado = 1 GROUP BY Filial__Codigo, Vendedor__Codigo;",
@@ -597,7 +614,8 @@ const CASES_AVANCADO: Case[] = [
         id: "o2",
         xp: 35,
         question:
-          "Classifique os vendedores dentro de cada filial pelo total vendido (1º, 2º, 3º...), mostrando o nome de cada um.",
+          "Classifique os vendedores dentro de cada filial pelo total vendido, do maior para o menor: 1º, 2º, 3º... " +
+            "Traga as colunas Filial__Codigo, Nome (do vendedor), o total vendido e a posição, nessa ordem.",
         hint: "RANK() OVER (PARTITION BY ... ORDER BY ... DESC) classifica dentro de cada grupo.",
         refSQL: `WITH vendas AS (
                    SELECT Filial__Codigo, Vendedor__Codigo, SUM(Total_Final) AS total
@@ -612,7 +630,8 @@ const CASES_AVANCADO: Case[] = [
         id: "o3",
         xp: 45,
         question:
-          "Agora filtre e mostre só os 2 primeiros colocados de cada filial.",
+          "Mostre apenas os 2 primeiros colocados de cada filial (pelo total vendido). " +
+            "Traga as colunas Filial__Codigo, Nome (do vendedor) e o total vendido, nessa ordem.",
         hint: "Não dá pra filtrar o resultado de uma window function na mesma consulta — coloque-a numa CTE e filtre na consulta de fora.",
         refSQL: `WITH vendas AS (
                    SELECT Filial__Codigo, Vendedor__Codigo, SUM(Total_Final) AS total
@@ -630,50 +649,50 @@ const CASES_AVANCADO: Case[] = [
       },
     ],
   },
+
   {
     id: "icms-desonerado-devolucao",
     caseNumber: "010",
     title: "ICMS Desonerado Preso em Nota de Devolução",
     level: "Avançado",
     category: "Suporte Técnico — Fiscal",
-    tables: "Movimento, Movimento_Produto, Filial, Cli_For",
+    tables: "Movimento, Movimento_Produto, Filial",
     context:
-      "Uma nota de devolução foi rejeitada pela SEFAZ por causa do ICMS Desonerado. Isso costuma acontecer quando o cliente é Simples Nacional, mas o XML importado veio de um fornecedor Regime Normal que destaca esse campo — e ele acaba herdado na devolução. Antes de ajustar qualquer coisa no banco, é preciso mapear exatamente quais linhas estão com esse problema.",
+        "Uma nota de devolução foi rejeitada pela SEFAZ por causa do ICMS Desonerado. Isso costuma acontecer quando a filial é Simples Nacional, mas o XML importado veio de um fornecedor Regime Normal que destaca esse campo — e ele acaba herdado na devolução. Antes de ajustar qualquer coisa no banco, é preciso mapear exatamente quais linhas estão com esse problema. Nos dados, Tipo 'D' é devolução e 'S' é saída; MotDesICMS igual a '0' significa que a linha não tem ICMS Desonerado.",
     setupSQL: `
       CREATE TABLE Filial (Codigo INTEGER PRIMARY KEY, Nome TEXT, RegimeTributario TEXT);
-      INSERT INTO Filial VALUES (1,'Matriz Centro','Simples Nacional'), (2,'Filial Zona Sul','Regime Normal');
- 
-      CREATE TABLE Cli_For (Codigo INTEGER PRIMARY KEY, Nome TEXT);
-      INSERT INTO Cli_For VALUES (301,'Distribuidora ABC Ltda'), (302,'Comercial XYZ');
- 
+      INSERT INTO Filial VALUES
+                           (1,'Matriz Centro','Simples Nacional'),
+                           (2,'Filial Zona Sul','Regime Normal');
+
       CREATE TABLE Movimento (
-        Ide TEXT PRIMARY KEY, Filial__Codigo INTEGER, Sequencia INTEGER, Tipo TEXT, Cli_For__Codigo INTEGER
+                               Ide TEXT PRIMARY KEY, Filial__Codigo INTEGER, Sequencia INTEGER, Tipo TEXT
       );
       INSERT INTO Movimento VALUES
-        ('MOV-A1',1,5001,'D',301),
-        ('MOV-A2',1,5002,'S',301),
-        ('MOV-A3',2,6001,'D',302),
-        ('MOV-A4',1,5003,'D',302),
-        ('MOV-A5',1,5004,'D',301);
- 
+                              ('MOV-A1',1,5001,'D'),
+                              ('MOV-A2',1,5002,'S'),
+                              ('MOV-A3',2,6001,'D'),
+                              ('MOV-A4',1,5003,'D'),
+                              ('MOV-A5',1,5004,'D');
+
       CREATE TABLE Movimento_Produto (
-        Movimento__Ide TEXT, Linha INTEGER, Produto__Codigo TEXT, MotDesICMS TEXT, MotDesIcmsSt TEXT
+                                       Movimento__Ide TEXT, Linha INTEGER, Produto__Codigo TEXT, MotDesICMS TEXT, MotDesIcmsSt TEXT
       );
       INSERT INTO Movimento_Produto VALUES
-        ('MOV-A1',1,'P001','10','10'),
-        ('MOV-A1',2,'P002','0','0'),
-        ('MOV-A2',1,'P001','10','10'),
-        ('MOV-A3',1,'P003','10','10'),
-        ('MOV-A4',1,'P002','20','20'),
-        ('MOV-A4',2,'P004','30','10'),
-        ('MOV-A5',1,'P001','0','0');
+                                      ('MOV-A1',1,'P001','10','10'),
+                                      ('MOV-A1',2,'P002','0','0'),
+                                      ('MOV-A2',1,'P001','10','10'),
+                                      ('MOV-A3',1,'P003','10','10'),
+                                      ('MOV-A4',1,'P002','20','20'),
+                                      ('MOV-A4',2,'P004','30','10'),
+                                      ('MOV-A5',1,'P001','0','0');
     `,
     objectives: [
       {
         id: "o1",
         xp: 30,
         question:
-          "Liste as linhas de Movimento_Produto com ICMS Desonerado (MotDesICMS <> '0') que pertencem a devoluções (Tipo = 'D').",
+            "Liste as linhas de produto de devoluções (Tipo = 'D') que têm ICMS Desonerado, ou seja, MotDesICMS diferente de '0'. Traga as colunas Movimento__Ide e Linha, nessa ordem.",
         hint: "Junte Movimento_Produto com Movimento pelo Ide, e filtre por Tipo = 'D' e MotDesICMS diferente de '0'.",
         refSQL: `SELECT mp.Movimento__Ide, mp.Linha
                  FROM Movimento_Produto mp JOIN Movimento m ON m.Ide = mp.Movimento__Ide
@@ -683,30 +702,32 @@ const CASES_AVANCADO: Case[] = [
         id: "o2",
         xp: 45,
         question:
-          "Restrinja o resultado anterior apenas às devoluções cuja filial é Simples Nacional (só aí o campo é realmente um problema).",
+            "Do resultado anterior, mantenha apenas as devoluções cuja filial é Simples Nacional (RegimeTributario = 'Simples Nacional'), porque só nelas o campo é um problema. Traga as colunas Movimento__Ide e Linha, nessa ordem.",
         hint: "Adicione mais um JOIN com Filial e filtre pelo regime tributário.",
         refSQL: `SELECT mp.Movimento__Ide, mp.Linha
                  FROM Movimento_Produto mp
-                 JOIN Movimento m ON m.Ide = mp.Movimento__Ide
-                 JOIN Filial fi ON fi.Codigo = m.Filial__Codigo
+                        JOIN Movimento m ON m.Ide = mp.Movimento__Ide
+                        JOIN Filial fi ON fi.Codigo = m.Filial__Codigo
                  WHERE m.Tipo = 'D' AND mp.MotDesICMS <> '0' AND fi.RegimeTributario = 'Simples Nacional';`,
       },
       {
         id: "o3",
         xp: 60,
         question:
-          "Agrupe por movimento e encontre quais notas têm mais de uma linha afetada — essas são prioridade para o ajuste.",
+            "Considere como linha afetada a que atende ao critério do objetivo anterior (devolução, filial Simples Nacional e MotDesICMS diferente de '0'). Descubra quais notas têm mais de uma linha afetada, pois essas são prioridade para o ajuste. Traga as colunas Ide, Sequencia e a quantidade de linhas afetadas (chame de total), nessa ordem.",
         hint: "Agrupe pelo Ide do movimento e use HAVING pra achar quem tem mais de uma linha afetada.",
         refSQL: `SELECT m.Ide, m.Sequencia, COUNT(*) AS total
                  FROM Movimento_Produto mp
-                 JOIN Movimento m ON m.Ide = mp.Movimento__Ide
-                 JOIN Filial fi ON fi.Codigo = m.Filial__Codigo
+                        JOIN Movimento m ON m.Ide = mp.Movimento__Ide
+                        JOIN Filial fi ON fi.Codigo = m.Filial__Codigo
                  WHERE m.Tipo = 'D' AND mp.MotDesICMS <> '0' AND fi.RegimeTributario = 'Simples Nacional'
                  GROUP BY m.Ide
                  HAVING COUNT(*) > 1;`,
       },
     ],
   },
+
+
   {
     id: "valor-final-divergente-ipi",
     caseNumber: "011",
@@ -741,7 +762,8 @@ const CASES_AVANCADO: Case[] = [
         id: "o1",
         xp: 30,
         question:
-          "Antes de recalcular qualquer coisa, ache as linhas em que o campo Valor_total não bate com Qtde × Valor_Unit.",
+          "Antes de recalcular qualquer coisa, encontre as linhas em que o campo Valor_total não bate com Qtde × Valor_Unit (compare com 2 casas decimais). " +
+            "Traga as colunas Movimento__Ide e Linha, nessa ordem.",
         hint: "Compare Valor_total com Qtde * Valor_Unit e devolva só as linhas que divergem. Um ROUND(...,2) nos dois lados evita diferença por causa de casa decimal.",
         refSQL: `SELECT mp.Movimento__Ide, mp.Linha
                  FROM Movimento_Produto mp
@@ -751,8 +773,10 @@ const CASES_AVANCADO: Case[] = [
         id: "o2",
         xp: 45,
         question:
-          "Agora recalcule o Valor_final pela fórmula completa e liste as linhas em que o valor armazenado diverge do calculado.",
-        hint: "Fórmula completa: Qtde*Valor_Unit menos os descontos, mais os acréscimos (frete, seguro, outros, IPI, comissão, ICMS ST). Um ROUND(...,2) evita diferença por causa de casa decimal.",
+          "o2: \"Recalcule o Valor_final de cada linha pela fórmula abaixo e liste as linhas em que o valor armazenado diverge do calculado (compare com 2 casas decimais): " +
+            "Qtde × Valor_Unit − Desc_Valor − Valor_promocao − vICMSDeson + vfcpst + Valor_Frete + Valor_Seguro + Valor_Outro + Valor_IPI + Comissao + Valor_ICMS_ST. Use Qtde × Valor_Unit como base, e não o campo Valor_total. " +
+            "Traga as colunas Sequencia (do movimento), Linha, o valor armazenado (chame de armazenado) e o valor calculado (chame de calculado), nessa ordem.\"\n",
+        hint: "Escreva a fórmula numa expressão só e compare com Valor_final usando ROUND(...,2) nos dois lados. Junte com Movimento pra trazer a Sequencia.",
         refSQL: `SELECT m.Sequencia, mp.Linha, mp.Valor_final AS armazenado,
                         ROUND(mp.Qtde*mp.Valor_Unit - mp.Desc_Valor - mp.Valor_promocao - mp.vICMSDeson
                               + mp.vfcpst + mp.Valor_Frete + mp.Valor_Seguro + mp.Valor_Outro
@@ -767,7 +791,8 @@ const CASES_AVANCADO: Case[] = [
         id: "o3",
         xp: 60,
         question:
-          "Some a diferença por nota e mostre só as notas cujo impacto financeiro total passa de R$10.",
+          "Para cada nota (movimento), some a diferença (armazenado − calculado) das linhas divergentes do objetivo anterior e mostre apenas as " +
+            "notas cuja soma passa de R$ 10,00. Traga as colunas Sequencia e a soma (chame de diferenca_total), nessa ordem.",
         hint: "Some a diferença (armazenado menos calculado) agrupando por movimento, e filtre com HAVING pra priorizar quem tem mais impacto.",
         refSQL: `SELECT m.Sequencia,
                         SUM(ROUND(mp.Valor_final,2) -
@@ -785,6 +810,9 @@ const CASES_AVANCADO: Case[] = [
     ],
   },
   {
+
+
+
     id: "vencimento-parcela-divergente",
     caseNumber: "012",
     title: "Vencimento de Parcela Fora do Padrão",
@@ -816,7 +844,7 @@ const CASES_AVANCADO: Case[] = [
         id: "o1",
         xp: 30,
         question:
-          "Liste as parcelas do tipo 'P' cujo vencimento não é a data de emissão da nota mais 1 dia.",
+          "Liste as parcelas a pagar (Tipo = 'P') cujo Vencimento é diferente da data de emissão da nota mais 1 dia. Traga as colunas Ide (da parcela), Vencimento e o vencimento esperado, nessa ordem.",
         hint: "A função date(coluna, '+1 day') soma um dia a uma data em formato texto. Compare o resultado com o Vencimento armazenado.",
         refSQL: `SELECT mf.Ide, mf.Vencimento, date(nfe.Data_Emissao,'+1 day') AS vencimento_esperado
                  FROM Movimento_Financeiro mf JOIN Movimento_NFe nfe ON nfe.Movimento__Ide = mf.Movimento__Ide
@@ -826,7 +854,8 @@ const CASES_AVANCADO: Case[] = [
         id: "o2",
         xp: 45,
         question:
-          "Repita a consulta trazendo também a Sequencia da nota (mais fácil de identificar do que o Ide técnico).",
+          "Repita a consulta anterior, trazendo também a Sequencia da nota (mais fácil de identificar do que o Ide técnico)." +
+            " Traga as colunas Sequencia, Ide (da parcela), Vencimento e o vencimento esperado (chame de esperado), nessa ordem.",
         hint: "Adicione o JOIN com Movimento só pra trazer a Sequencia.",
         refSQL: `SELECT m.Sequencia, mf.Ide, mf.Vencimento, date(nfe.Data_Emissao,'+1 day') AS esperado
                  FROM Movimento_Financeiro mf
@@ -838,7 +867,8 @@ const CASES_AVANCADO: Case[] = [
         id: "o3",
         xp: 60,
         question:
-          "Agrupe por nota e encontre as que têm mais de uma parcela com vencimento errado.",
+          "Considere parcela com vencimento errado a que atende ao critério do objetivo anterior (Tipo = 'P' e vencimento diferente da emissão mais 1 dia)." +
+            " Descubra quais notas têm mais de uma parcela errada. Traga as colunas Sequencia e a quantidade de parcelas erradas (chame de total), nessa ordem.",
         hint: "Agrupe pelo Ide do movimento e use HAVING > 1 pra achar as notas com mais de uma parcela errada.",
         refSQL: `SELECT m.Sequencia, COUNT(*) AS total
                  FROM Movimento_Financeiro mf
@@ -850,6 +880,7 @@ const CASES_AVANCADO: Case[] = [
       },
     ],
   },
+
   {
     id: "caixa-travado-funcionario-inativo",
     caseNumber: "013",
@@ -858,68 +889,71 @@ const CASES_AVANCADO: Case[] = [
     category: "Suporte Técnico — Caixa/RH",
     tables: "Financeiro_Caixa_Mov, Funcionario",
     context:
-      "Um caixa não estava fechando porque o sistema pedia a senha do funcionário que abriu — só que esse funcionário foi desligado e está inativo. O suporte quer saber quais caixas estão nessa situação e se existe algum funcionário ativo vinculado ao mesmo caixa padrão que poderia ajudar a destravar.",
+        "Um caixa não estava fechando porque o sistema pedia a senha do funcionário que abriu — só que esse funcionário foi desligado e está inativo (Inativo = 1). O suporte quer saber quais caixas estão nessa situação e se existe algum funcionário ativo (Inativo = 0) vinculado ao mesmo caixa padrão do funcionário desligado que poderia ajudar a destravar.",
     setupSQL: `
-      CREATE TABLE Funcionario (Codigo INTEGER PRIMARY KEY, Nome TEXT, Inativo INTEGER, Caixa_Padrao INTEGER);
-      INSERT INTO Funcionario VALUES
-        (50,'Jonas Ribeiro Alves',1,1),
-        (51,'Patrícia Souza Lima',0,1),
-        (52,'Eduardo Martins Braga',0,2),
-        (53,'Camila Rezende Alves',1,3),
-        (54,'Tiago Nascimento Rocha',0,3),
-        (55,'Sabrina Costa Lemos',0,2),
-        (56,'Roberto Diniz Prado',1,4);
- 
-      CREATE TABLE Financeiro_Caixa_Mov (
-        Ide TEXT PRIMARY KEY, Filial INTEGER, Caixa INTEGER, Abertura TEXT, Fechamento TEXT, Abertura_Usuario INTEGER
-      );
-      INSERT INTO Financeiro_Caixa_Mov VALUES
-        ('FCM-1',1,1,'2024-07-01 08:00',NULL,50),
-        ('FCM-2',1,2,'2024-07-01 08:10','2024-07-01 18:00',52),
-        ('FCM-3',1,3,'2024-07-02 09:00',NULL,53),
-        ('FCM-4',2,1,'2024-07-01 09:00','2024-07-01 19:00',50),
-        ('FCM-5',1,2,'2024-07-03 08:05',NULL,55),
-        ('FCM-6',2,4,'2024-07-02 10:00',NULL,56);
-    `,
+    CREATE TABLE Funcionario (Codigo INTEGER PRIMARY KEY, Nome TEXT, Inativo INTEGER, Caixa_Padrao INTEGER);
+    INSERT INTO Funcionario VALUES
+      (50,'Jonas Ribeiro Alves',1,1),
+      (51,'Patrícia Souza Lima',0,1),
+      (52,'Eduardo Martins Braga',0,2),
+      (53,'Camila Rezende Alves',1,2),
+      (54,'Tiago Nascimento Rocha',0,3),
+      (55,'Sabrina Costa Lemos',0,1),
+      (56,'Roberto Diniz Prado',1,4);
+
+    CREATE TABLE Financeiro_Caixa_Mov (
+      Ide TEXT PRIMARY KEY, Filial INTEGER, Caixa INTEGER, Abertura TEXT, Fechamento TEXT, Abertura_Usuario INTEGER
+    );
+    INSERT INTO Financeiro_Caixa_Mov VALUES
+      ('FCM-1',1,1,'2024-07-01 08:00',NULL,50),
+      ('FCM-2',1,2,'2024-07-01 08:10','2024-07-01 18:00',52),
+      ('FCM-3',1,3,'2024-07-02 09:00',NULL,53),
+      ('FCM-4',2,1,'2024-07-01 09:00','2024-07-01 19:00',50),
+      ('FCM-5',1,2,'2024-07-03 08:05',NULL,55),
+      ('FCM-6',2,4,'2024-07-02 10:00',NULL,56);
+  `,
     objectives: [
       {
         id: "o1",
         xp: 30,
         question:
-          "Liste os registros de caixa abertos (sem fechamento) cujo funcionário de abertura está inativo.",
+            "Liste os registros de caixa abertos (Fechamento vazio) cujo funcionário de abertura está inativo (Inativo = 1). Traga as colunas Ide, Caixa e Nome (do funcionário), nessa ordem.",
         hint: "Junte Financeiro_Caixa_Mov com Funcionario pelo usuário de abertura; filtre por Fechamento nulo e funcionário inativo.",
         refSQL: `SELECT f.Ide, f.Caixa, fu.Nome
-                 FROM Financeiro_Caixa_Mov f JOIN Funcionario fu ON fu.Codigo = f.Abertura_Usuario
-                 WHERE f.Fechamento IS NULL AND fu.Inativo = 1;`,
+               FROM Financeiro_Caixa_Mov f JOIN Funcionario fu ON fu.Codigo = f.Abertura_Usuario
+               WHERE f.Fechamento IS NULL AND fu.Inativo = 1;`,
       },
       {
         id: "o2",
         xp: 45,
         question:
-          "Para cada caixa travado, encontre um funcionário ativo vinculado ao mesmo caixa padrão, como possível substituto.",
-        hint: "Um segundo JOIN com Funcionario (com outro apelido) comparando o Caixa_Padrao encontra colegas ativos vinculados ao mesmo caixa.",
+            "Chame de caixa travado o registro aberto (sem fechamento) cujo funcionário de abertura está inativo. Para cada um, encontre os funcionários ativos (Inativo = 0) que tenham o mesmo Caixa_Padrao do funcionário que abriu, como possíveis substitutos. Traga as colunas Ide do registro (chame de caixa_travado) e Nome do substituto (chame de substituto_possivel), nessa ordem. Caixas sem nenhum substituto não precisam aparecer.",
+        hint: "Um segundo JOIN com Funcionario (com outro apelido) comparando o Caixa_Padrao encontra colegas ativos vinculados ao mesmo caixa padrão.",
         refSQL: `SELECT f.Ide AS caixa_travado, fu_ativo.Nome AS substituto_possivel
-                 FROM Financeiro_Caixa_Mov f
-                 JOIN Funcionario fu_inativo ON fu_inativo.Codigo = f.Abertura_Usuario
-                 JOIN Funcionario fu_ativo ON fu_ativo.Caixa_Padrao = fu_inativo.Caixa_Padrao AND fu_ativo.Inativo = 0
-                 WHERE f.Fechamento IS NULL AND fu_inativo.Inativo = 1;`,
+               FROM Financeiro_Caixa_Mov f
+               JOIN Funcionario fu_inativo ON fu_inativo.Codigo = f.Abertura_Usuario
+               JOIN Funcionario fu_ativo ON fu_ativo.Caixa_Padrao = fu_inativo.Caixa_Padrao AND fu_ativo.Inativo = 0
+               WHERE f.Fechamento IS NULL AND fu_inativo.Inativo = 1;`,
       },
       {
         id: "o3",
         xp: 60,
         question:
-          "Conte quantos substitutos possíveis existem para cada caixa travado, mostrando só os que têm pelo menos 1.",
-        hint: "Repare que o INNER JOIN do objetivo anterior já esconde os casos sem nenhum substituto disponível — o GROUP BY com HAVING só confirma isso.",
+            "Para cada caixa travado (mesma definição do objetivo anterior), conte quantos substitutos possíveis existem, incluindo os que não têm nenhum (contagem 0). Traga as colunas Ide do registro (chame de caixa_travado) e a quantidade de substitutos (chame de substitutos), nessa ordem.",
+        hint: "Se usar INNER JOIN, o caixa sem substituto some do resultado. Pense em qual tipo de junção mantém todas as linhas da esquerda mesmo sem correspondência, e conte uma coluna do funcionário ativo (não o COUNT(*)).",
         refSQL: `SELECT f.Ide AS caixa_travado, COUNT(fu_ativo.Codigo) AS substitutos
-                 FROM Financeiro_Caixa_Mov f
-                 JOIN Funcionario fu_inativo ON fu_inativo.Codigo = f.Abertura_Usuario
-                 JOIN Funcionario fu_ativo ON fu_ativo.Caixa_Padrao = fu_inativo.Caixa_Padrao AND fu_ativo.Inativo = 0
-                 WHERE f.Fechamento IS NULL AND fu_inativo.Inativo = 1
-                 GROUP BY f.Ide
-                 HAVING COUNT(fu_ativo.Codigo) >= 1;`,
+               FROM Financeiro_Caixa_Mov f
+               JOIN Funcionario fu_inativo ON fu_inativo.Codigo = f.Abertura_Usuario
+               LEFT JOIN Funcionario fu_ativo
+                 ON fu_ativo.Caixa_Padrao = fu_inativo.Caixa_Padrao AND fu_ativo.Inativo = 0
+               WHERE f.Fechamento IS NULL AND fu_inativo.Inativo = 1
+               GROUP BY f.Ide;`,
       },
     ],
   },
+
+
+
   {
     id: "bug-troco-forma-pagamento",
     caseNumber: "014",
@@ -928,40 +962,40 @@ const CASES_AVANCADO: Case[] = [
     category: "Suporte Técnico — Financeiro",
     tables: "Movimento_Financeiro_Diario",
     context:
-      "Um parceiro notou valores estranhos no fechamento de caixa de um dia específico, numa única forma de pagamento. Depois de comparar vários dias, foi identificado um bug em que o troco estava sendo subtraído do total da forma de pagamento em dinheiro. O primeiro passo pra confirmar isso é achar o dia fora do padrão comparando com a média dos outros dias.",
+        "Um parceiro notou valores estranhos no fechamento de caixa de um dia específico, numa única forma de pagamento. Depois de comparar vários dias, foi identificado um bug em que o troco estava sendo subtraído do total da forma de pagamento em dinheiro. O primeiro passo pra confirmar isso é achar o dia fora do padrão: some os lançamentos de cada dia por forma de pagamento e compare esse total diário com a média dos totais diários daquela forma, considerando todos os dias da tabela.",
     setupSQL: `
       CREATE TABLE Movimento_Financeiro_Diario (Data TEXT, FormaPagamento TEXT, Valor REAL);
       INSERT INTO Movimento_Financeiro_Diario VALUES
-        ('2024-06-01','Dinheiro',120), ('2024-06-01','Dinheiro',80), ('2024-06-01','Dinheiro',50),
-        ('2024-06-02','Dinheiro',100), ('2024-06-02','Dinheiro',90), ('2024-06-02','Dinheiro',70),
-        ('2024-06-03','Dinheiro',40), ('2024-06-03','Dinheiro',30), ('2024-06-03','Dinheiro',10),
-        ('2024-06-04','Dinheiro',110), ('2024-06-04','Dinheiro',95), ('2024-06-04','Dinheiro',60),
-        ('2024-06-05','Dinheiro',130), ('2024-06-05','Dinheiro',85), ('2024-06-05','Dinheiro',55),
-        ('2024-06-01','Cartão',300), ('2024-06-01','Cartão',200),
-        ('2024-06-02','Cartão',320), ('2024-06-02','Cartão',210),
-        ('2024-06-03','Cartão',310), ('2024-06-03','Cartão',205),
-        ('2024-06-04','Cartão',305), ('2024-06-04','Cartão',215),
-        ('2024-06-05','Cartão',315), ('2024-06-05','Cartão',195);
+                                                ('2024-06-01','Dinheiro',120), ('2024-06-01','Dinheiro',80), ('2024-06-01','Dinheiro',50),
+                                                ('2024-06-02','Dinheiro',100), ('2024-06-02','Dinheiro',90), ('2024-06-02','Dinheiro',70),
+                                                ('2024-06-03','Dinheiro',40), ('2024-06-03','Dinheiro',30), ('2024-06-03','Dinheiro',10),
+                                                ('2024-06-04','Dinheiro',110), ('2024-06-04','Dinheiro',95), ('2024-06-04','Dinheiro',60),
+                                                ('2024-06-05','Dinheiro',130), ('2024-06-05','Dinheiro',85), ('2024-06-05','Dinheiro',55),
+                                                ('2024-06-01','Cartão',300), ('2024-06-01','Cartão',200),
+                                                ('2024-06-02','Cartão',320), ('2024-06-02','Cartão',210),
+                                                ('2024-06-03','Cartão',310), ('2024-06-03','Cartão',205),
+                                                ('2024-06-04','Cartão',305), ('2024-06-04','Cartão',215),
+                                                ('2024-06-05','Cartão',315), ('2024-06-05','Cartão',195);
     `,
     objectives: [
       {
         id: "o1",
         xp: 30,
         question:
-          "Calcule o total recebido por dia em cada forma de pagamento.",
+            "Calcule o total recebido por dia em cada forma de pagamento. Traga as colunas Data, FormaPagamento e o total do dia (chame de total), nessa ordem.",
         hint: "Agrupe por Data e FormaPagamento e some o valor.",
         refSQL:
-          "SELECT Data, FormaPagamento, SUM(Valor) AS total FROM Movimento_Financeiro_Diario GROUP BY Data, FormaPagamento;",
+            "SELECT Data, FormaPagamento, SUM(Valor) AS total FROM Movimento_Financeiro_Diario GROUP BY Data, FormaPagamento;",
       },
       {
         id: "o2",
         xp: 45,
         question:
-          "Ao lado do total de cada dia, mostre a média geral daquela forma de pagamento (considerando todos os dias).",
-        hint: "AVG(total) OVER (PARTITION BY FormaPagamento) calcula a média de cada forma sem precisar de uma segunda consulta separada.",
+            "Ao lado do total de cada dia, mostre a média dos totais diários daquela forma de pagamento (considerando todos os dias). Atenção: a média é dos totais por dia, e não dos lançamentos individuais. Traga as colunas Data, FormaPagamento, total e a média (chame de media_forma), nessa ordem.",
+        hint: "AVG(total) OVER (PARTITION BY FormaPagamento) calcula a média de cada forma sem precisar de uma segunda consulta separada. Calcule os totais diários primeiro (uma CTE ajuda).",
         refSQL: `WITH totais_dia AS (
-                   SELECT Data, FormaPagamento, SUM(Valor) AS total FROM Movimento_Financeiro_Diario GROUP BY Data, FormaPagamento
-                 )
+          SELECT Data, FormaPagamento, SUM(Valor) AS total FROM Movimento_Financeiro_Diario GROUP BY Data, FormaPagamento
+        )
                  SELECT Data, FormaPagamento, total, AVG(total) OVER (PARTITION BY FormaPagamento) AS media_forma
                  FROM totais_dia;`,
       },
@@ -969,15 +1003,15 @@ const CASES_AVANCADO: Case[] = [
         id: "o3",
         xp: 60,
         question:
-          "Encontre o dia e a forma de pagamento em que o total ficou abaixo de 60% da média daquela forma — o indício do bug.",
+            "Encontre o dia e a forma de pagamento em que o total diário ficou abaixo de 60% da média dos totais diários daquela forma (total < média × 0,6). Esse é o indício do bug. Traga as colunas Data, FormaPagamento, total e media_forma, nessa ordem.",
         hint: "Não dá pra filtrar direto pelo resultado da window function — coloque o cálculo numa CTE e filtre na consulta de fora.",
         refSQL: `WITH totais_dia AS (
-                   SELECT Data, FormaPagamento, SUM(Valor) AS total FROM Movimento_Financeiro_Diario GROUP BY Data, FormaPagamento
-                 ),
-                 com_media AS (
-                   SELECT Data, FormaPagamento, total, AVG(total) OVER (PARTITION BY FormaPagamento) AS media_forma
-                   FROM totais_dia
-                 )
+          SELECT Data, FormaPagamento, SUM(Valor) AS total FROM Movimento_Financeiro_Diario GROUP BY Data, FormaPagamento
+        ),
+                      com_media AS (
+                        SELECT Data, FormaPagamento, total, AVG(total) OVER (PARTITION BY FormaPagamento) AS media_forma
+                        FROM totais_dia
+                      )
                  SELECT Data, FormaPagamento, total, media_forma FROM com_media WHERE total < media_forma * 0.6;`,
       },
     ],
