@@ -63,7 +63,6 @@ watch(
       <div class="editor-feedback">
         <slot name="feedback" />
       </div>
-      >
       <button
         class="toggle-btn"
         type="button"
@@ -104,6 +103,7 @@ watch(
 .editor-feedback {
   margin-left: auto;
   margin-right: 8%;
+  margin-top: 2%;
   max-width: 26rem;
 }
 .run-btn {

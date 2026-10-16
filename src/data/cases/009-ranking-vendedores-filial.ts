@@ -3,13 +3,13 @@ import type { Case } from "../../types/case";
 export const caso009: Case = {
   id: "ranking-vendedores-filial",
   caseNumber: "009",
-      title: "Ranking de Vendedores por Filial",
-      level: "Avançado",
-      category: "Suporte Técnico — Comercial",
-      tables: "Movimento, Funcionario",
-      context:
-          "A gerência regional pediu um ranking dos dois vendedores que mais venderam em cada filial no mês, pra decidir a distribuição de bônus. O relatório precisa considerar só vendas efetivadas.",
-      setupSQL: `
+  title: "Ranking de Vendedores por Filial",
+  level: "Avançado",
+  category: "Suporte Técnico — Comercial",
+  tables: "Movimento, Funcionario",
+  context:
+    "A gerência regional pediu um ranking dos dois vendedores que mais venderam em cada filial no mês, pra decidir a distribuição de bônus. O relatório precisa considerar só vendas efetivadas.",
+  setupSQL: `
       CREATE TABLE Funcionario (Codigo INTEGER PRIMARY KEY, Nome TEXT);
       INSERT INTO Funcionario VALUES
         (10,'Carlos Eduardo Matos'), (11,'Beatriz Lopes Andrade'),
@@ -32,25 +32,25 @@ export const caso009: Case = {
         (2,4,12,80.00,1),
         (2,5,13,950.00,1);
     `,
-      objectives: [
-        {
-          id: "o1",
-          xp: 20,
-          question:
-              "Some o total vendido por vendedor, em cada filial." +
-              " O relatorio deve conter na ordem o código da filial, nome do vendedor e o total vendido.",
-          hint: "SUM com GROUP BY por filial e vendedor já dá o total de cada um.",
-          refSQL:
-              "SELECT Filial__Codigo, Vendedor__Codigo, SUM(Total_Final) AS total FROM Movimento WHERE Efetivado = 1 GROUP BY Filial__Codigo, Vendedor__Codigo;",
-        },
-        {
-          id: "o2",
-          xp: 35,
-          question:
-              "Classifique os vendedores dentro de cada filial pelo total vendido, do maior para o menor. " +
-              "Traga a filial, nome (do vendedor), o total vendido e a posição, nessa ordem.",
-          hint: "RANK() OVER (PARTITION BY ... ORDER BY ... DESC) classifica dentro de cada grupo.",
-          refSQL: `WITH vendas AS (
+  objectives: [
+    {
+      id: "o1",
+      xp: 20,
+      question:
+        "Some o total vendido por vendedor, em cada filial." +
+        " O relatorio deve conter na ordem o código da filial, nome do vendedor e o total vendido.",
+      hint: "SUM com GROUP BY por filial e vendedor já dá o total de cada um.",
+      refSQL:
+        "SELECT Filial__Codigo, Vendedor__Codigo, SUM(Total_Final) AS total FROM Movimento WHERE Efetivado = 1 GROUP BY Filial__Codigo, Vendedor__Codigo;",
+    },
+    {
+      id: "o2",
+      xp: 35,
+      question:
+        "Classifique os vendedores dentro de cada filial pelo total vendido, do maior para o menor. " +
+        "Traga a filial, nome (do vendedor), o total vendido e a posição, nessa ordem.",
+      hint: "RANK() OVER (PARTITION BY ... ORDER BY ... DESC) classifica dentro de cada grupo.",
+      refSQL: `WITH vendas AS (
                    SELECT Filial__Codigo, Vendedor__Codigo, SUM(Total_Final) AS total
                    FROM Movimento WHERE Efetivado = 1
                    GROUP BY Filial__Codigo, Vendedor__Codigo
@@ -58,15 +58,15 @@ export const caso009: Case = {
                  SELECT v.Filial__Codigo, f.Nome, v.total,
                         RANK() OVER (PARTITION BY v.Filial__Codigo ORDER BY v.total DESC) AS posicao
                  FROM vendas v JOIN Funcionario f ON f.Codigo = v.Vendedor__Codigo;`,
-        },
-        {
-          id: "o3",
-          xp: 45,
-          question:
-              "Mostre apenas os 2 primeiros colocados de cada filial (pelo total vendido). " +
-              "Traga as colunas filial, Nome (do vendedor) e o total vendido, nessa ordem.",
-          hint: "Não dá pra filtrar o resultado de uma window function na mesma consulta — coloque-a numa CTE e filtre na consulta de fora.",
-          refSQL: `WITH vendas AS (
+    },
+    {
+      id: "o3",
+      xp: 45,
+      question:
+        "Mostre apenas os 2 primeiros colocados de cada filial (pelo total vendido). " +
+        "Traga as colunas filial, Nome (do vendedor) e o total vendido, nessa ordem.",
+      hint: "Não dá pra filtrar o resultado de uma window function na mesma consulta — coloque-a numa CTE e filtre na consulta de fora.",
+      refSQL: `WITH vendas AS (
                    SELECT Filial__Codigo, Vendedor__Codigo, SUM(Total_Final) AS total
                    FROM Movimento WHERE Efetivado = 1
                    GROUP BY Filial__Codigo, Vendedor__Codigo
@@ -79,6 +79,6 @@ export const caso009: Case = {
                  SELECT r.Filial__Codigo, f.Nome, r.total
                  FROM ranking r JOIN Funcionario f ON f.Codigo = r.Vendedor__Codigo
                  WHERE r.posicao <= 2;`,
-        },
-      ],
+    },
+  ],
 };

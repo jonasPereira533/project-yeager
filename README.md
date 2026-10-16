@@ -17,6 +17,7 @@
     <a href="https://github.com/jonasPereira533/project-yeager">
       <img src="https://img.shields.io/badge/Código-fonte-42b883?logo=github&logoColor=black" alt="Repositório no GitHub" />
     </a>
+    <img src="https://img.shields.io/badge/vers%C3%A3o-v0.6.0-e8a33d" alt="Versão v0.6.0" />
   </p>
 
   <p>
@@ -242,17 +243,17 @@ Regras de autoria que o projeto segue:
 
 ## Stack
 
-| Camada       | Tecnologia                                                                                         | Por quê                                                     |
-| ------------ | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Interface    | [Vue 3.5](https://vuejs.org) (`<script setup>`, Composition API)                                   | componentes pequenos e legíveis                             |
-| Linguagem    | [TypeScript 6](https://www.typescriptlang.org)                                                     | tipos compartilhados entre caso, motor e UI                 |
-| Build        | [Vite 8](https://vite.dev)                                                                         | HMR rápido e chunks separados para Firebase e para o editor |
-| Rotas        | [vue-router 5](https://router.vuejs.org)                                                           | rotas `/`, `/cases`, `/solution` + 404                      |
-| Motor SQL    | [sql.js 1.14](https://sql.js.org)                                                                  | SQLite em WebAssembly dentro do navegador, sem servidor     |
-| Editor       | [CodeMirror 6](https://codemirror.net) + `@codemirror/lang-sql`                                    | dialeto SQLite e autocomplete                               |
-| Auth & dados | [Firebase 12](https://firebase.google.com) + [vuefire 3](https://vuefire.vuejs.org)                | Google Auth e progresso por usuário                         |
-| Testes       | [vitest](https://vitest.dev)                                                                             | regras da comparação, autocomplete e sincronia com `firestore.rules` |
-| Qualidade    | [ESLint 9](https://eslint.org) (flat config, `eslint-plugin-vue`, `typescript-eslint`) + `vue-tsc` | lint e typecheck no CI                                      |
+| Camada       | Tecnologia                                                                                         | Por quê                                                              |
+| ------------ | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Interface    | [Vue 3.5](https://vuejs.org) (`<script setup>`, Composition API)                                   | componentes pequenos e legíveis                                      |
+| Linguagem    | [TypeScript 6](https://www.typescriptlang.org)                                                     | tipos compartilhados entre caso, motor e UI                          |
+| Build        | [Vite 8](https://vite.dev)                                                                         | HMR rápido e chunks separados para Firebase e para o editor          |
+| Rotas        | [vue-router 5](https://router.vuejs.org)                                                           | rotas `/`, `/cases`, `/solution` + 404                               |
+| Motor SQL    | [sql.js 1.14](https://sql.js.org)                                                                  | SQLite em WebAssembly dentro do navegador, sem servidor              |
+| Editor       | [CodeMirror 6](https://codemirror.net) + `@codemirror/lang-sql`                                    | dialeto SQLite e autocomplete                                        |
+| Auth & dados | [Firebase 12](https://firebase.google.com) + [vuefire 3](https://vuefire.vuejs.org)                | Google Auth e progresso por usuário                                  |
+| Testes       | [vitest](https://vitest.dev)                                                                       | regras da comparação, autocomplete e sincronia com `firestore.rules` |
+| Qualidade    | [ESLint 9](https://eslint.org) (flat config, `eslint-plugin-vue`, `typescript-eslint`) + `vue-tsc` | lint e typecheck no CI                                               |
 
 ## Testes
 
@@ -402,17 +403,17 @@ project-yeager/
 
 ## Scripts
 
-| Comando             | O que faz                                       |
-| ------------------- | ----------------------------------------------- |
-| `npm run dev`       | servidor de desenvolvimento com HMR             |
-| `npm run build`     | `vue-tsc -b` + build de produção em `dist/`     |
-| `npm run preview`   | serve localmente o build de produção            |
-| `npm run typecheck` | checagem de tipos (`vue-tsc -b`)                |
-| `npm run lint`      | ESLint em todo o projeto                        |
-| `npm run lint:fix`  | ESLint corrigindo o que dá pra corrigir sozinho |
-| `npm run test`      | testes com vitest (comparação de resultados, autocomplete, regras do Firestore) |
-| `npm run test:watch` | vitest em modo watch                          |
-| `npm run check`     | o combo: typecheck + lint + test + build        |
+| Comando              | O que faz                                                                       |
+| -------------------- | ------------------------------------------------------------------------------- |
+| `npm run dev`        | servidor de desenvolvimento com HMR                                             |
+| `npm run build`      | `vue-tsc -b` + build de produção em `dist/`                                     |
+| `npm run preview`    | serve localmente o build de produção                                            |
+| `npm run typecheck`  | checagem de tipos (`vue-tsc -b`)                                                |
+| `npm run lint`       | ESLint em todo o projeto                                                        |
+| `npm run lint:fix`   | ESLint corrigindo o que dá pra corrigir sozinho                                 |
+| `npm run test`       | testes com vitest (comparação de resultados, autocomplete, regras do Firestore) |
+| `npm run test:watch` | vitest em modo watch                                                            |
+| `npm run check`      | o combo: typecheck + lint + test + build                                        |
 
 ## Integração contínua
 

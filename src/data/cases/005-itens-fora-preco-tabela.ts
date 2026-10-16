@@ -3,13 +3,13 @@ import type { Case } from "../../types/case";
 export const caso005: Case = {
   id: "itens-fora-preco-tabela",
   caseNumber: "005",
-      title: "Itens Vendidos Fora do Preço de Tabela",
-      level: "Intermediário",
-      category: "Suporte Técnico — Vendas",
-      tables: "Movimento_Produto, Produto",
-      context:
-          "O setor comercial percebeu que alguns itens foram vendidos com valor diferente do preço de tabela cadastrado no produto, e quer localizar exatamente quais vendas fugiram do preço oficial.",
-      setupSQL: `
+  title: "Itens Vendidos Fora do Preço de Tabela",
+  level: "Intermediário",
+  category: "Suporte Técnico — Vendas",
+  tables: "Movimento_Produto, Produto",
+  context:
+    "O setor comercial percebeu que alguns itens foram vendidos com valor diferente do preço de tabela cadastrado no produto, e quer localizar exatamente quais vendas fugiram do preço oficial.",
+  setupSQL: `
       CREATE TABLE Produto (Codigo TEXT PRIMARY KEY, Nome TEXT, Preco1 REAL);
       INSERT INTO Produto VALUES
         ('P001','Óleo Motor 1L',45.00),
@@ -35,35 +35,35 @@ export const caso005: Case = {
         (2,2004,'P003',1,95.00),
         (1,1005,'P004',1,420.00);
     `,
-      objectives: [
-        {
-          id: "o1",
-          xp: 15,
-          question:
-              "Liste nome do produto, valor unitario e preço de vendas em que o valor unitário vendido é diferente do preço de tabela do produto.",
-          hint: "Junte Movimento_Produto com Produto pelo código; compare Valor_Unit com Preco1 usando <>.",
-          refSQL:
-              "SELECT mp.Sequencia, p.Nome, mp.Valor_Unit, p.Preco1 FROM Movimento_Produto mp JOIN Produto p ON p.Codigo = mp.Produto__Codigo WHERE mp.Valor_Unit <> p.Preco1;",
-        },
-        {
-          id: "o2",
-          xp: 20,
-          question:
-              "Entre essas vendas, considere apenas os itens vendidos ABAIXO do preço de tabela e mostre quanto foi dado de" +
-              " desconto em cada um (preço de tabela menos valor vendido). Traga as colunas Sequencia, Nome (do produto) e a diferença.",
-          hint: "Troque a comparação por < pra pegar só o que foi vendido mais barato que a tabela.",
-          refSQL:
-              "SELECT mp.Sequencia, p.Nome, (p.Preco1 - mp.Valor_Unit) AS diferenca FROM Movimento_Produto mp JOIN Produto p ON p.Codigo = mp.Produto__Codigo WHERE mp.Valor_Unit < p.Preco1;",
-        },
-        {
-          id: "o3",
-          xp: 30,
-          question:
-              "Entre os itens vendidos abaixo do preço de tabela, descubra quais produtos aparecem mais de uma vez. " +
-              "Retorne o nome do produto a quantidade de vendas abaixo do preço, com o produto mais frequente primeiro.",
-          hint: "Agrupe pelo produto, conte as ocorrências e use HAVING > 1.",
-          refSQL:
-              "SELECT p.Nome, COUNT(*) AS total FROM Movimento_Produto mp JOIN Produto p ON p.Codigo = mp.Produto__Codigo WHERE mp.Valor_Unit < p.Preco1 GROUP BY p.Codigo HAVING COUNT(*) > 1 ORDER BY total DESC;",
-        },
-      ],
+  objectives: [
+    {
+      id: "o1",
+      xp: 15,
+      question:
+        "Liste nome do produto, valor unitario e preço de vendas em que o valor unitário vendido é diferente do preço de tabela do produto.",
+      hint: "Junte Movimento_Produto com Produto pelo código; compare Valor_Unit com Preco1 usando <>.",
+      refSQL:
+        "SELECT mp.Sequencia, p.Nome, mp.Valor_Unit, p.Preco1 FROM Movimento_Produto mp JOIN Produto p ON p.Codigo = mp.Produto__Codigo WHERE mp.Valor_Unit <> p.Preco1;",
+    },
+    {
+      id: "o2",
+      xp: 20,
+      question:
+        "Entre essas vendas, considere apenas os itens vendidos ABAIXO do preço de tabela e mostre quanto foi dado de" +
+        " desconto em cada um (preço de tabela menos valor vendido). Traga as colunas Sequencia, Nome (do produto) e a diferença.",
+      hint: "Troque a comparação por < pra pegar só o que foi vendido mais barato que a tabela.",
+      refSQL:
+        "SELECT mp.Sequencia, p.Nome, (p.Preco1 - mp.Valor_Unit) AS diferenca FROM Movimento_Produto mp JOIN Produto p ON p.Codigo = mp.Produto__Codigo WHERE mp.Valor_Unit < p.Preco1;",
+    },
+    {
+      id: "o3",
+      xp: 30,
+      question:
+        "Entre os itens vendidos abaixo do preço de tabela, descubra quais produtos aparecem mais de uma vez. " +
+        "Retorne o nome do produto a quantidade de vendas abaixo do preço, com o produto mais frequente primeiro.",
+      hint: "Agrupe pelo produto, conte as ocorrências e use HAVING > 1.",
+      refSQL:
+        "SELECT p.Nome, COUNT(*) AS total FROM Movimento_Produto mp JOIN Produto p ON p.Codigo = mp.Produto__Codigo WHERE mp.Valor_Unit < p.Preco1 GROUP BY p.Codigo HAVING COUNT(*) > 1 ORDER BY total DESC;",
+    },
+  ],
 };
