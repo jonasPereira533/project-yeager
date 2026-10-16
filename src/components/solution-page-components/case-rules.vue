@@ -7,7 +7,7 @@ const expanded = ref(true);
 <template>
   <div class="dossier instructions" data-num="Manual">
     <div class="dossier-header">
-      <div class="dossier-title">Como resolver um caso</div>
+      <div class="dossier-title">Como resolver um chamado</div>
       <button class="toggle-btn" type="button" @click="expanded = !expanded">
         {{ expanded ? "Esconder" : "Mostrar" }}
       </button>
@@ -15,8 +15,8 @@ const expanded = ref(true);
 
     <div v-show="expanded">
       <p class="intro">
-        Cada caso é dividido em objetivos. Resolva um de cada vez escrevendo uma
-        consulta SQL que responda exatamente o que foi pedido.
+        Cada chamado é dividido em objetivos. Resolva um de cada vez escrevendo
+        uma consulta SQL que responda exatamente o que foi pedido.
       </p>
 
       <ul class="rules">
@@ -54,8 +54,8 @@ const expanded = ref(true);
           <span>
             Colunas marcadas como <strong>BOOLEAN</strong> no esquema aceitam
             <strong>true</strong> e <strong>false</strong> tanto quanto
-            <strong>1</strong> e <strong>0</strong> — use a forma que ficar
-            mais legível. No resultado elas sempre aparecem como 1 ou 0.
+            <strong>1</strong> e <strong>0</strong> — use a forma que ficar mais
+            legível. No resultado elas sempre aparecem como 1 ou 0.
           </span>
         </li>
         <li>

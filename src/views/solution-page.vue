@@ -15,10 +15,7 @@ import { useSqlEngine } from "../composables/use-sql-engine";
 import { useProgress } from "../composables/use-progress";
 import { useDrafts } from "../composables/use-drafts";
 import { useReloadGuard } from "../composables/use-reload-guard";
-import {
-  matchesReference,
-  toQueryResult,
-} from "../utils/compare-results";
+import { matchesReference, toQueryResult } from "../utils/compare-results";
 import { isCaseComplete } from "../utils/case-completion";
 import type {
   Case,
@@ -129,8 +126,8 @@ watch(caseIdFromQuery, (id) => {
 });
 
 const TABS = [
-  { id: "ficha", label: "Ficha do Caso" },
-  { id: "investigacao", label: "Investigação" },
+  { id: "ficha", label: "Relato do Chamado" },
+  { id: "investigacao", label: "Atendimento" },
 ];
 const activeTab = ref<"ficha" | "investigacao">("ficha");
 
@@ -276,11 +273,7 @@ async function execute(
     return;
   }
 
-  const comparison = matchesReference(
-    execResult,
-    database,
-    objective.refSQL,
-  );
+  const comparison = matchesReference(execResult, database, objective.refSQL);
 
   if (!comparison.match) {
     feedback.value = {
@@ -335,9 +328,9 @@ onUnmounted(() => {
 
 <template>
   <div v-if="!activeCase" class="not-found">
-    <p>Caso não encontrado.</p>
+    <p>Chamado não encontrado.</p>
     <RouterLink :to="{ name: 'main-page' }"
-      >← Voltar pra lista de casos</RouterLink
+      >← Voltar pra fila de chamados</RouterLink
     >
   </div>
 
@@ -349,7 +342,7 @@ onUnmounted(() => {
         <span class="nivel">{{ activeCase.level }}</span>
       </div>
       <RouterLink :to="{ name: 'case-page' }"
-        >← Voltar pra lista de casos</RouterLink
+        >← Voltar pra fila de chamados</RouterLink
       >
     </div>
 
