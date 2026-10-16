@@ -1,7 +1,7 @@
 import { computed, effectScope, reactive, watch } from "vue";
 import { doc, setDoc, arrayUnion } from "firebase/firestore";
 import { useCurrentUser, useDocument, useFirestore } from "vuefire";
-import { CASES } from "../data/cases.ts";
+import { CASES } from "../data/cases/index.ts";
 
 const HINT_PENALTY = 5;
 
