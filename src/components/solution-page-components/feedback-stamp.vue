@@ -8,10 +8,10 @@ defineProps<{
 
 <template>
   <div
-    class="feedback-live"
-    role="status"
-    aria-live="polite"
-    aria-atomic="true"
+      class="feedback-live"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
   >
     <div v-if="feedback.type === 'error'" class="feedback-error">
       {{ feedback.message }}
@@ -38,7 +38,7 @@ defineProps<{
   transform: rotate(-6deg);
   font-size: 0.9rem;
   letter-spacing: 0.05em;
-  margin-top: 1.2rem;
+  margin-top: 0;
   opacity: 0.9;
 }
 .feedback-stamp.open {
@@ -66,7 +66,7 @@ defineProps<{
   background: rgba(193, 68, 60, 0.1);
   border-radius: 0.25rem;
   padding: 0.75rem 0.95rem;
-  margin-top: 1.2rem;
+  margin-top: 0;
   white-space: pre-wrap;
 }
 </style>

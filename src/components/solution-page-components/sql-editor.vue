@@ -46,17 +46,23 @@ watch(
     <span :id="EDITOR_LABEL_ID" class="editor-label">Sua consulta</span>
     <div ref="editorContainer" class="editor-host" />
     <div class="editor-actions">
-      <button
-        class="run-btn"
-        type="button"
-        :disabled="running"
-        :aria-busy="running"
-        @click="emit('run')"
-      >
-        {{ running ? "Consultando…" : "Investigar ▶" }}
-      </button>
-      <span class="run-hint"
-        >Ctrl/Cmd + Enter também executa · Tab indenta</span
+      <div class="editor-run">
+        <button
+          class="run-btn"
+          type="button"
+          :disabled="running"
+          :aria-busy="running"
+          @click="emit('run')"
+        >
+          {{ running ? "Consultando…" : "Investigar ▶" }}
+        </button>
+        <span class="run-hint"
+          >Ctrl/Cmd + Enter também executa · Tab indenta</span
+        >
+      </div>
+      <div class="editor-feedback">
+        <slot name="feedback" />
+      </div>
       >
       <button
         class="toggle-btn"
@@ -83,10 +89,22 @@ watch(
 }
 .editor-actions {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 1rem;
   margin-top: 0.9rem;
+  min-height: 6.5rem;
+}
+.editor-run {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   flex-wrap: wrap;
+}
+.editor-feedback {
+  margin-left: auto;
+  margin-right: 8%;
+  max-width: 26rem;
 }
 .run-btn {
   font-family: var(--font-sans);
@@ -145,5 +163,15 @@ watch(
 .toggle-btn:focus-visible {
   outline: 2px solid var(--amber);
   outline-offset: 2px;
+}
+
+@media (max-width: 53.75rem) {
+  .editor-actions {
+    flex-direction: column;
+    min-height: 0;
+  }
+  .editor-feedback {
+    margin: 0.5rem 0 0;
+  }
 }
 </style>

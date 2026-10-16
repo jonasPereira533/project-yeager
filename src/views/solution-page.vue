@@ -385,13 +385,17 @@ onUnmounted(() => {
               :objective="activeObjective"
               :case-id="activeCaseId"
             />
+
             <SqlEditor
               v-model="queryText"
               :schema="schema"
               :running="isRunning"
               @run="runQuery"
-            />
-            <FeedbackStamp :feedback="feedback" />
+            >
+              <template #feedback>
+                <FeedbackStamp :feedback="feedback" />
+              </template>
+            </SqlEditor>
             <ResultsTable :result="result" :has-run="hasRun" />
           </div>
         </div>
@@ -444,10 +448,25 @@ onUnmounted(() => {
 }
 
 .case-header a {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
   color: var(--amber);
+  text-decoration: none;
+  border: 1px solid var(--rule);
+  padding: 0.25rem 0.6rem;
+  border-radius: 2px;
   display: inline-block;
   cursor: pointer;
+  transition: border-color 0.2s;
 }
+.case-header a:hover {
+  border-color: var(--amber);
+}
+.case-header a:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
 .investigacao-grid {
   display: grid;
   grid-template-columns: 300px 1fr;
