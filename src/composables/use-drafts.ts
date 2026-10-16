@@ -2,19 +2,6 @@ import { computed, effectScope, reactive, watch } from "vue";
 import { doc, setDoc } from "firebase/firestore";
 import { useCurrentUser, useDocument, useFirestore } from "vuefire";
 
-/**
- * Rascunhos das consultas, por caso e por objetivo.
- *
- * Sem login o rascunho vai para o localStorage, porque um rascunho que some
- * no refresh e exatamente o problema que estamos resolvendo. Com login ele vai
- * para o Firestore, no mesmo documento de progresso.
- *
- * O `cache` local e a fonte da leitura: ele e semeado pelo localStorage e
- * complementado pelo servidor, e toda escrita passa por ele antes de ir pro
- * Firestore. Assim a troca de objetivo le sempre o que acabou de ser digitado,
- * sem esperar a rede.
- */
-
 const STORAGE_KEY = "yeager:drafts";
 const SAVE_DEBOUNCE_MS = 800;
 
@@ -29,10 +16,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/**
- * O servidor e a entrada nao confiavel: qualquer um pode escrever um rascunho
- * com formato inesperado, e isso nao pode quebrar o editor.
- */
 function sanitize(raw: unknown): DraftMap {
   if (!isPlainObject(raw)) return {};
 
@@ -95,12 +78,10 @@ function createDrafts() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
     } catch {
-      // cota cheia ou storage bloqueado: o rascunho continua em memoria
+      // storage bloqueado
     }
   }
 
-  // Complementa o cache com o que veio do servidor, sem sobrescrever rascunho
-  // local que ainda nao foi enviado.
   watch(
     () => userDoc.value?.draftsByCase,
     (remote) => {
@@ -127,8 +108,6 @@ function createDrafts() {
     { immediate: true },
   );
 
-  // Migration: leva o rascunho do visitante para a conta, sem sobrescrever o
-  // que ja estiver no servidor.
   watch(user, async (newUser, oldUser) => {
     if (oldUser || !newUser) return;
     if (!Object.keys(cache).length) return;
@@ -198,10 +177,6 @@ function createDrafts() {
     schedule(caseId, "active");
   }
 
-  /**
-   * Envia o rascunho inteiro do caso. O merge do Firestore e recursivo, entao
-   * os objetivos que nao entraram nesta escrita continuam no servidor.
-   */
   async function push(caseId: string) {
     if (!user.value) return;
     const draft = cache[caseId];
@@ -218,7 +193,6 @@ function createDrafts() {
     }
   }
 
-  /** Na troca de objetivo e no unmount, para nao perder a ultima tecla. */
   function saveNow(caseId: string) {
     for (const [key, timer] of timers) {
       if (!key.startsWith(`${caseId}:`)) continue;

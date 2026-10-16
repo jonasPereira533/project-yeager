@@ -1,10 +1,31 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { CASES } from "../../data/cases";
 import { CASE_LEVELS, type Case, type CaseLevel } from "../../types/case";
 import { useProgress } from "../../composables/use-progress";
+import { useArchiveCelebration } from "../../composables/use-archive-celebration";
+import { isArchiveComplete } from "../../utils/case-completion";
+import ArchiveCompleteModal from "./archive-complete-modal.vue";
 
-const { countSolved } = useProgress();
+const { countSolved, isSolved } = useProgress();
+const { celebrated, celebrate } = useArchiveCelebration();
+
+const showArchiveModal = ref(false);
+
+const archiveComplete = computed(() =>
+  isArchiveComplete(CASES, (caseId, objectiveId) =>
+    isSolved(caseId, objectiveId),
+  ),
+);
+
+function maybeCelebrateArchive() {
+  if (!archiveComplete.value || celebrated.value) return;
+  showArchiveModal.value = true;
+  celebrate();
+}
+
+watch(archiveComplete, maybeCelebrateArchive);
+onMounted(maybeCelebrateArchive);
 
 const LEVEL_ORDER = CASE_LEVELS;
 
@@ -54,15 +75,15 @@ function isCaseSolved(caseItem: Case): boolean {
 <template>
   <section class="case-catalog">
     <div class="page-head">
-      <div class="eyebrow">Arquivo de Casos</div>
-      <h1>Escolha sua investigação</h1>
+      <div class="eyebrow">Fila de Chamados</div>
+      <h1>Puxe seu chamado</h1>
     </div>
 
     <div v-for="group in groupedCases" :key="group.level" class="level-group">
       <div class="level-head">
         <h2 :class="['level-title', group.colorClass]">{{ group.level }}</h2>
         <span class="level-desc">{{ group.description }}</span>
-        <span class="level-count">{{ group.cases.length }} casos</span>
+        <span class="level-count">{{ group.cases.length }} chamados</span>
       </div>
 
       <div class="case-grid">
@@ -98,6 +119,11 @@ function isCaseSolved(caseItem: Case): boolean {
         </RouterLink>
       </div>
     </div>
+
+    <ArchiveCompleteModal
+      v-if="showArchiveModal"
+      @close="showArchiveModal = false"
+    />
   </section>
 </template>
 

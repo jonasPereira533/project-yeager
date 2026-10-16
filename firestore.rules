@@ -29,8 +29,6 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // Rascunhos de consulta guardam SQL livre, entao o tamanho e limitado
-    // para ninguem estourar o limite de 1 MB do documento.
     function maxDraftSqlLength() {
       return 20000;
     }
@@ -55,8 +53,6 @@ service cloud.firestore {
       return !(name in request.resource.data) || isValidProgressMap(request.resource.data[name]);
     }
 
-    // Rascunhos tem um nivel a mais: por caso, um objetivo ativo e um mapa
-    // de objetivo para consulta.
     function isValidDraftsMap(data) {
       return data is map
         && data.keys().hasOnly(validCaseIds())
@@ -77,9 +73,6 @@ service cloud.firestore {
       return !(name in request.resource.data) || isValidDraftsMap(request.resource.data[name]);
     }
 
-    // Progresso nunca retrocede: um objetivo resolvido continua resolvido.
-    // Rascunhos sao o oposto, sao sobrescritos a cada tecla, entao ficam de
-    // fora dessa verificacao.
     function isMonotonic(field) {
       return !resource.data[field].exists()
         || (

@@ -3,13 +3,13 @@ import type { Case } from "../../types/case";
 export const caso013: Case = {
   id: "caixa-travado-funcionario-inativo",
   caseNumber: "013",
-      title: "Caixa que Não Fecha por Funcionário Inativo",
-      level: "Avançado",
-      category: "Suporte Técnico — Caixa/RH",
-      tables: "Financeiro_Caixa_Mov, Funcionario",
-      context:
-          "Um caixa não estava fechando porque o sistema pedia a senha do funcionário que abriu — só que esse funcionário foi desligado e está inativo (Inativo = 1). O suporte quer saber quais caixas estão nessa situação e se existe algum funcionário ativo (Inativo = 0) vinculado ao mesmo caixa padrão do funcionário desligado que poderia ajudar a destravar.",
-      setupSQL: `
+  title: "Caixa que Não Fecha por Funcionário Inativo",
+  level: "Avançado",
+  category: "Suporte Técnico — Caixa/RH",
+  tables: "Financeiro_Caixa_Mov, Funcionario",
+  context:
+    "Um caixa não estava fechando porque o sistema pedia a senha do funcionário que abriu — só que esse funcionário foi desligado e está inativo (Inativo = 1). O suporte quer saber quais caixas estão nessa situação e se existe algum funcionário ativo (Inativo = 0) vinculado ao mesmo caixa padrão do funcionário desligado que poderia ajudar a destravar.",
+  setupSQL: `
     CREATE TABLE Funcionario (Codigo INTEGER PRIMARY KEY, Nome TEXT, Inativo INTEGER, Caixa_Padrao INTEGER);
     INSERT INTO Funcionario VALUES
       (50,'Jonas Ribeiro Alves',1,1),
@@ -31,42 +31,42 @@ export const caso013: Case = {
       ('FCM-5',1,2,'2024-07-03 08:05',NULL,55),
       ('FCM-6',2,4,'2024-07-02 10:00',NULL,56);
   `,
-      objectives: [
-        {
-          id: "o1",
-          xp: 30,
-          question:
-              "Liste os registros de caixa abertos (Fechamento vazio) cujo funcionário de abertura está inativo. Traga as colunas Ide, Caixa e Nome do funcionário.",
-          hint: "Junte Financeiro_Caixa_Mov com Funcionario pelo usuário de abertura; filtre por Fechamento nulo e funcionário inativo.",
-          refSQL: `SELECT f.Ide, f.Caixa, fu.Nome
+  objectives: [
+    {
+      id: "o1",
+      xp: 30,
+      question:
+        "Liste os registros de caixa abertos (Fechamento vazio) cujo funcionário de abertura está inativo. Traga as colunas Ide, Caixa e Nome do funcionário.",
+      hint: "Junte Financeiro_Caixa_Mov com Funcionario pelo usuário de abertura; filtre por Fechamento nulo e funcionário inativo.",
+      refSQL: `SELECT f.Ide, f.Caixa, fu.Nome
                FROM Financeiro_Caixa_Mov f JOIN Funcionario fu ON fu.Codigo = f.Abertura_Usuario
                WHERE f.Fechamento IS NULL AND fu.Inativo = 1;`,
-        },
-        {
-          id: "o2",
-          xp: 45,
-          question:
-              "Chame de caixa travado o registro aberto (sem fechamento) cujo funcionário de abertura está inativo. Para cada um, encontre os funcionários ativos que tenham o mesmo caixa padrão do funcionário que abriu, como possíveis substitutos. Traga as colunas Ide do registro (chame de caixa_travado) e Nome do substituto (chame de substituto_possivel), nessa ordem. Caixas sem nenhum substituto não precisam aparecer.",
-          hint: "Um segundo JOIN com Funcionario (com outro apelido) comparando o Caixa_Padrao encontra colegas ativos vinculados ao mesmo caixa padrão.",
-          refSQL: `SELECT f.Ide AS caixa_travado, fu_ativo.Nome AS substituto_possivel
+    },
+    {
+      id: "o2",
+      xp: 45,
+      question:
+        "Chame de caixa travado o registro aberto (sem fechamento) cujo funcionário de abertura está inativo. Para cada um, encontre os funcionários ativos que tenham o mesmo caixa padrão do funcionário que abriu, como possíveis substitutos. Traga as colunas Ide do registro (chame de caixa_travado) e Nome do substituto (chame de substituto_possivel), nessa ordem. Caixas sem nenhum substituto não precisam aparecer.",
+      hint: "Um segundo JOIN com Funcionario (com outro apelido) comparando o Caixa_Padrao encontra colegas ativos vinculados ao mesmo caixa padrão.",
+      refSQL: `SELECT f.Ide AS caixa_travado, fu_ativo.Nome AS substituto_possivel
                FROM Financeiro_Caixa_Mov f
                JOIN Funcionario fu_inativo ON fu_inativo.Codigo = f.Abertura_Usuario
                JOIN Funcionario fu_ativo ON fu_ativo.Caixa_Padrao = fu_inativo.Caixa_Padrao AND fu_ativo.Inativo = 0
                WHERE f.Fechamento IS NULL AND fu_inativo.Inativo = 1;`,
-        },
-        {
-          id: "o3",
-          xp: 60,
-          question:
-              "Para cada caixa travado (mesma definição do objetivo anterior), conte quantos substitutos possíveis existem, incluindo os que não têm nenhum (contagem 0). Traga as colunas Ide do registro (chame de caixa_travado) e a quantidade de substitutos (chame de substitutos), nessa ordem.",
-          hint: "Se usar INNER JOIN, o caixa sem substituto some do resultado. Pense em qual tipo de junção mantém todas as linhas da esquerda mesmo sem correspondência, e conte uma coluna do funcionário ativo (não o COUNT(*)).",
-          refSQL: `SELECT f.Ide AS caixa_travado, COUNT(fu_ativo.Codigo) AS substitutos
+    },
+    {
+      id: "o3",
+      xp: 60,
+      question:
+        "Para cada caixa travado (mesma definição do objetivo anterior), conte quantos substitutos possíveis existem, incluindo os que não têm nenhum (contagem 0). Traga as colunas Ide do registro (chame de caixa_travado) e a quantidade de substitutos (chame de substitutos), nessa ordem.",
+      hint: "Se usar INNER JOIN, o caixa sem substituto some do resultado. Pense em qual tipo de junção mantém todas as linhas da esquerda mesmo sem correspondência, e conte uma coluna do funcionário ativo (não o COUNT(*)).",
+      refSQL: `SELECT f.Ide AS caixa_travado, COUNT(fu_ativo.Codigo) AS substitutos
                FROM Financeiro_Caixa_Mov f
                JOIN Funcionario fu_inativo ON fu_inativo.Codigo = f.Abertura_Usuario
                LEFT JOIN Funcionario fu_ativo
                  ON fu_ativo.Caixa_Padrao = fu_inativo.Caixa_Padrao AND fu_ativo.Inativo = 0
                WHERE f.Fechamento IS NULL AND fu_inativo.Inativo = 1
                GROUP BY f.Ide;`,
-        },
-      ],
+    },
+  ],
 };

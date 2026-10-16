@@ -2,6 +2,7 @@
 import { ref, toRef, watch } from "vue";
 import type { SchemaTable } from "../../types/case";
 import { useSqlCodeMirror } from "../../composables/use-sql-codemirror";
+import { useEditorPrefs } from "../../composables/use-editor-prefs";
 
 const props = defineProps<{
   modelValue: string;
@@ -18,10 +19,16 @@ const editorContainer = ref<HTMLElement | null>(null);
 
 const EDITOR_LABEL_ID = "sql-editor-label";
 
+const AUTOCOMPLETE_HINT =
+  "As sugestões trazem nome de tabela e coluna. Desligue para escrever a consulta do zero.";
+
+const { autocomplete, setAutocomplete } = useEditorPrefs();
+
 const { setValue } = useSqlCodeMirror({
   container: editorContainer,
   initialValue: props.modelValue,
   schema: toRef(props, "schema"),
+  autocompleteOn: autocomplete,
   labelId: EDITOR_LABEL_ID,
   isRunning: () => props.running ?? false,
   onChange: (value) => emit("update:modelValue", value),
@@ -29,8 +36,8 @@ const { setValue } = useSqlCodeMirror({
 });
 
 watch(
-    () => props.modelValue,
-    (value) => setValue(value),
+  () => props.modelValue,
+  (value) => setValue(value),
 );
 </script>
 
@@ -41,21 +48,30 @@ watch(
     <div class="editor-actions">
       <div class="editor-run">
         <button
-            class="run-btn"
-            type="button"
-            :disabled="running"
-            :aria-busy="running"
-            @click="emit('run')"
+          class="run-btn"
+          type="button"
+          :disabled="running"
+          :aria-busy="running"
+          @click="emit('run')"
         >
           {{ running ? "Consultando…" : "Investigar ▶" }}
         </button>
         <span class="run-hint"
-        >Ctrl/Cmd + Enter também executa · Tab indenta</span
+          >Ctrl/Cmd + Enter também executa · Tab indenta</span
         >
       </div>
       <div class="editor-feedback">
         <slot name="feedback" />
       </div>
+      <button
+        class="toggle-btn"
+        type="button"
+        :aria-pressed="autocomplete"
+        :title="AUTOCOMPLETE_HINT"
+        @click="setAutocomplete(!autocomplete)"
+      >
+        Autocomplete: {{ autocomplete ? "ligado" : "desligado" }}
+      </button>
     </div>
   </div>
 </template>
@@ -87,6 +103,7 @@ watch(
 .editor-feedback {
   margin-left: auto;
   margin-right: 8%;
+  margin-top: 2%;
   max-width: 26rem;
 }
 .run-btn {
@@ -122,6 +139,30 @@ watch(
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--ink-muted);
+}
+
+.toggle-btn {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  margin-left: auto;
+}
+.toggle-btn:hover {
+  border-color: var(--amber);
+  color: var(--ink);
+}
+.toggle-btn[aria-pressed="true"] {
+  color: var(--amber);
+  border-color: var(--amber);
+}
+.toggle-btn:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
 }
 
 @media (max-width: 53.75rem) {

@@ -14,10 +14,9 @@ import { CASES } from "../data/cases";
 import { useSqlEngine } from "../composables/use-sql-engine";
 import { useProgress } from "../composables/use-progress";
 import { useDrafts } from "../composables/use-drafts";
-import {
-  matchesReference,
-  toQueryResult,
-} from "../utils/compare-results";
+import { useReloadGuard } from "../composables/use-reload-guard";
+import { matchesReference, toQueryResult } from "../utils/compare-results";
+import { isCaseComplete } from "../utils/case-completion";
 import type {
   Case,
   Feedback,
@@ -29,7 +28,7 @@ import { useRoute } from "vue-router";
 import CaseRules from "../components/solution-page-components/case-rules.vue";
 
 const { createDatabase } = useSqlEngine();
-const { markSolved, countSolved } = useProgress();
+const { markSolved, isSolved } = useProgress();
 const {
   getDraft,
   getActiveObjective,
@@ -50,35 +49,36 @@ const feedback = ref<Feedback>({ type: "none", message: "" });
 const engineError = ref("");
 const isRunning = ref(false);
 
+const settledQuery = ref("");
+
+const { setState: setReloadState, disarm: disarmReload } = useReloadGuard();
+
+watch(
+  [queryText, settledQuery],
+  () => {
+    setReloadState({
+      settled: settledQuery.value,
+      current: queryText.value,
+    });
+  },
+  { immediate: true },
+);
+
 let runSeq = 0;
 
-// Trava o watcher de rascunho enquanto um caso esta sendo carregado, para nao
-// gravar o texto antigo no caso novo.
 let isRestoringDraft = false;
 
 const activeCase = computed<Case | undefined>(() =>
-    CASES.find((c) => c.id === activeCaseId.value),
+  CASES.find((c) => c.id === activeCaseId.value),
 );
 const activeObjective = computed(
-    () =>
-        activeCase.value?.objectives.find(
-            (o) => o.id === activeObjectiveId.value,
-        ) ?? null,
+  () =>
+    activeCase.value?.objectives.find(
+      (o) => o.id === activeObjectiveId.value,
+    ) ?? null,
 );
 
-let solvedBaseline = 0;
 const showCompleteModal = ref(false);
-
-watch(
-    () => (activeCase.value ? countSolved(activeCase.value.id) : 0),
-    (solved) => {
-      const caseItem = activeCase.value;
-      const total = caseItem?.objectives.length ?? 0;
-      showCompleteModal.value =
-          solvedBaseline < total && solved >= total && total > 0;
-      solvedBaseline = solved;
-    },
-);
 
 const BARE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_$]*$/;
 
@@ -88,26 +88,26 @@ function quoteIdentifier(name: string): string {
 
 function readSchema(database: Database): SchemaTable[] {
   const tablesRes = database.exec(
-      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;",
+    "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;",
   );
   if (!tablesRes.length) return [];
 
   return tablesRes[0].values
-      .map((row) => String(row[0]))
-      .filter((tableName) => !tableName.startsWith("sqlite_"))
-      .map((tableName) => {
-        const quoted = BARE_IDENTIFIER.test(tableName)
-            ? tableName
-            : quoteIdentifier(tableName);
-        const info = database.exec(`PRAGMA table_info(${quoted});`);
-        const columns = info.length
-            ? info[0].values.map((col) => ({
-              name: String(col[1]),
-              type: String(col[2]),
-            }))
-            : [];
-        return { name: tableName, columns };
-      });
+    .map((row) => String(row[0]))
+    .filter((tableName) => !tableName.startsWith("sqlite_"))
+    .map((tableName) => {
+      const quoted = BARE_IDENTIFIER.test(tableName)
+        ? tableName
+        : quoteIdentifier(tableName);
+      const info = database.exec(`PRAGMA table_info(${quoted});`);
+      const columns = info.length
+        ? info[0].values.map((col) => ({
+            name: String(col[1]),
+            type: String(col[2]),
+          }))
+        : [];
+      return { name: tableName, columns };
+    });
 }
 
 const route = useRoute();
@@ -126,21 +126,17 @@ watch(caseIdFromQuery, (id) => {
 });
 
 const TABS = [
-  { id: "ficha", label: "Ficha do Caso" },
-  { id: "investigacao", label: "Investigação" },
+  { id: "ficha", label: "Relato do Chamado" },
+  { id: "investigacao", label: "Atendimento" },
 ];
 const activeTab = ref<"ficha" | "investigacao">("ficha");
 
 async function loadCase(caseId: string) {
   const seq = ++runSeq;
 
-  // Precisa cobrir a funcao inteira: o activeCaseId muda na primeira linha e o
-  // texto so e restaurado no fim, entao o watcher dispararia no meio do await
-  // gravando o rascunho antigo no caso novo.
   isRestoringDraft = true;
   try {
     activeCaseId.value = caseId;
-    solvedBaseline = countSolved(caseId);
     showCompleteModal.value = false;
     engineError.value = "";
 
@@ -157,7 +153,7 @@ async function loadCase(caseId: string) {
       nextDb = await createDatabase(c.setupSQL);
     } catch (error) {
       engineError.value =
-          "Não foi possível baixar o motor SQLite (sql.js). Verifique sua conexão.";
+        "Não foi possível baixar o motor SQLite (sql.js). Verifique sua conexão.";
       console.error("Falha ao carregar o motor sql.js:", error);
       return;
     }
@@ -179,16 +175,16 @@ async function loadCase(caseId: string) {
     db.value?.close();
     db.value = nextDb;
 
-    // Retoma o rascunho salvo deste caso, se houver.
     const objectiveIds = c.objectives.map((o) => o.id);
     const savedObjectiveId = getActiveObjective(caseId);
     const objectiveId =
-        savedObjectiveId && objectiveIds.includes(savedObjectiveId)
-            ? savedObjectiveId
-            : (objectiveIds[0] ?? null);
+      savedObjectiveId && objectiveIds.includes(savedObjectiveId)
+        ? savedObjectiveId
+        : (objectiveIds[0] ?? null);
 
     activeObjectiveId.value = objectiveId;
     queryText.value = objectiveId ? getDraft(caseId, objectiveId) : "";
+    settledQuery.value = queryText.value;
 
     result.value = null;
     hasRun.value = false;
@@ -202,8 +198,6 @@ function selectObjective(objectiveId: string) {
   if (objectiveId === activeObjectiveId.value) return;
   runSeq++;
 
-  // Envia o rascunho do objetivo que esta saindo antes de trocar, senao o
-  // debounce pendente salvaria o texto antigo no objetivo novo.
   const caseId = activeCaseId.value;
   const previousObjectiveId = activeObjectiveId.value;
   if (previousObjectiveId) {
@@ -214,6 +208,7 @@ function selectObjective(objectiveId: string) {
   isRestoringDraft = true;
   activeObjectiveId.value = objectiveId;
   queryText.value = getDraft(caseId, objectiveId);
+  settledQuery.value = queryText.value;
   isRestoringDraft = false;
 
   setActiveObjective(caseId, objectiveId);
@@ -241,6 +236,7 @@ async function runQuery() {
 
   hasRun.value = true;
   isRunning.value = true;
+  settledQuery.value = queryText.value;
 
   try {
     await execute(database, sql, caseId, objective, seq);
@@ -250,11 +246,11 @@ async function runQuery() {
 }
 
 async function execute(
-    database: Database,
-    sql: string,
-    caseId: string,
-    objective: Objective | null,
-    seq: number,
+  database: Database,
+  sql: string,
+  caseId: string,
+  objective: Objective | null,
+  seq: number,
 ) {
   let execResult;
   try {
@@ -264,8 +260,8 @@ async function execute(
     feedback.value = {
       type: "error",
       message:
-          "Erro na consulta: " +
-          (err instanceof Error ? err.message : String(err)),
+        "Erro na consulta: " +
+        (err instanceof Error ? err.message : String(err)),
     };
     return;
   }
@@ -277,11 +273,7 @@ async function execute(
     return;
   }
 
-  const comparison = matchesReference(
-      execResult,
-      database,
-      objective.refSQL,
-  );
+  const comparison = matchesReference(execResult, database, objective.refSQL);
 
   if (!comparison.match) {
     feedback.value = {
@@ -300,7 +292,7 @@ async function execute(
     feedback.value = {
       type: "error",
       message:
-          "Consulta correta, mas não foi possível salvar seu progresso. Verifique sua conexão.",
+        "Consulta correta, mas não foi possível salvar seu progresso. Verifique sua conexão.",
     };
     return;
   }
@@ -308,10 +300,17 @@ async function execute(
   feedback.value = {
     type: "solved",
     message:
-        outcome === "new"
-            ? `CHAMADO ENCERRADO · +${objective.xp} XP`
-            : "JÁ RESOLVIDO",
+      outcome === "new"
+        ? `CHAMADO ENCERRADO · +${objective.xp} XP`
+        : "JÁ RESOLVIDO",
   };
+
+  if (outcome === "new" && activeCase.value) {
+    showCompleteModal.value = isCaseComplete(
+      activeCase.value.objectives,
+      (objectiveId) => isSolved(caseId, objectiveId),
+    );
+  }
 }
 
 onMounted(() => {
@@ -319,9 +318,9 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  // Sem isso a ultima tecla digitada antes de sair fica só no cache local.
   saveNow(activeCaseId.value);
   cancelPending();
+  disarmReload();
   db.value?.close();
   db.value = null;
 });
@@ -329,9 +328,9 @@ onUnmounted(() => {
 
 <template>
   <div v-if="!activeCase" class="not-found">
-    <p>Caso não encontrado.</p>
+    <p>Chamado não encontrado.</p>
     <RouterLink :to="{ name: 'main-page' }"
-    >← Voltar pra lista de casos</RouterLink
+      >← Voltar pra fila de chamados</RouterLink
     >
   </div>
 
@@ -343,7 +342,7 @@ onUnmounted(() => {
         <span class="nivel">{{ activeCase.level }}</span>
       </div>
       <RouterLink :to="{ name: 'case-page' }"
-      >← Voltar pra lista de casos</RouterLink
+        >← Voltar pra fila de chamados</RouterLink
       >
     </div>
 
@@ -352,46 +351,46 @@ onUnmounted(() => {
       <CaseTabs v-model="activeTab" :tabs="TABS" />
 
       <section
-          v-show="activeTab === 'ficha'"
-          id="panel-ficha"
-          class="desk"
-          role="tabpanel"
-          aria-labelledby="tab-ficha"
-          tabindex="0"
+        v-show="activeTab === 'ficha'"
+        id="panel-ficha"
+        class="desk"
+        role="tabpanel"
+        aria-labelledby="tab-ficha"
+        tabindex="0"
       >
         <DossierBriefing :active-case="activeCase" />
         <CaseRules />
       </section>
 
       <section
-          v-show="activeTab === 'investigacao'"
-          id="panel-investigacao"
-          class="desk"
-          role="tabpanel"
-          aria-labelledby="tab-investigacao"
-          tabindex="0"
+        v-show="activeTab === 'investigacao'"
+        id="panel-investigacao"
+        class="desk"
+        role="tabpanel"
+        aria-labelledby="tab-investigacao"
+        tabindex="0"
       >
         <div class="investigacao-grid">
           <aside>
             <ObjectiveList
-                :active-case="activeCase"
-                :active-objective-id="activeObjectiveId"
-                @select="selectObjective"
+              :active-case="activeCase"
+              :active-objective-id="activeObjectiveId"
+              @select="selectObjective"
             />
             <SchemaPanel :tables="schema" />
           </aside>
 
           <div class="investigation-main">
             <QuestionPanel
-                :objective="activeObjective"
-                :case-id="activeCaseId"
+              :objective="activeObjective"
+              :case-id="activeCaseId"
             />
-            <!-- O carimbo agora fica dentro do editor, na linha do botão -->
+
             <SqlEditor
-                v-model="queryText"
-                :schema="schema"
-                :running="isRunning"
-                @run="runQuery"
+              v-model="queryText"
+              :schema="schema"
+              :running="isRunning"
+              @run="runQuery"
             >
               <template #feedback>
                 <FeedbackStamp :feedback="feedback" />
@@ -404,9 +403,9 @@ onUnmounted(() => {
     </template>
 
     <CaseCompleteModal
-        v-if="showCompleteModal && activeCase"
-        :active-case="activeCase"
-        @close="showCompleteModal = false"
+      v-if="showCompleteModal && activeCase"
+      :active-case="activeCase"
+      @close="showCompleteModal = false"
     />
   </div>
 </template>

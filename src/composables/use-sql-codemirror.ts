@@ -5,7 +5,6 @@ import {
   keymap,
   placeholder as placeholderExtension,
 } from "@codemirror/view";
-import { basicSetup } from "codemirror";
 import { indentWithTab } from "@codemirror/commands";
 import { syntaxHighlighting } from "@codemirror/language";
 import {
@@ -19,24 +18,17 @@ import {
   yeagerEditorTheme,
   yeagerHighlightStyle,
 } from "../utils/sql-editor-theme";
+import {
+  buildAutocompleteExtension,
+  setupExtensions,
+} from "../utils/sql-editor-setup";
+import { createColumnCompletionSource } from "../utils/sql-completion";
 
-/**
- * SQLite identifiers sao case-insensitive, mas o dialect do lang-sql assume
- * que nao sao. Sem isso, um nome como `Cli_For` nao casa com o padrao usado
- * para decidir entre completar puro ou envolver em crase, e toda sugestao de
- * tabela volta cercada de crase.
- */
 const SQLITE_DIALECT: SQLDialect = SQLDialect.define({
   ...SQLite.spec,
   caseInsensitiveIdentifiers: true,
 });
 
-/**
- * O formato de `SQLNamespace` e recursivo: cada tabela vira um nivel com um
- * `self` (o proprio nome da tabela, tipado como `class`) e `children` no
- * formato de array, que e a unica forma que o lang-sql tipa como `property`.
- * Passar um objeto aqui faria cada coluna virar `type` de novo.
- */
 function toSqlNamespace(schema: SchemaTable[]): Record<string, SQLNamespace> {
   const namespace: Record<string, SQLNamespace> = {};
   for (const table of schema) {
@@ -49,17 +41,23 @@ function toSqlNamespace(schema: SchemaTable[]): Record<string, SQLNamespace> {
 }
 
 function buildSqlLanguage(schema: SchemaTable[]) {
-  return sql({
-    dialect: SQLITE_DIALECT,
-    schema: toSqlNamespace(schema),
-    upperCaseKeywords: true,
-  });
+  return [
+    sql({
+      dialect: SQLITE_DIALECT,
+      schema: toSqlNamespace(schema),
+      upperCaseKeywords: true,
+    }),
+    SQLITE_DIALECT.language.data.of({
+      autocomplete: createColumnCompletionSource(schema),
+    }),
+  ];
 }
 
 export interface UseSqlCodeMirrorOptions {
   container: Ref<HTMLElement | null>;
   initialValue: string;
   schema: Ref<SchemaTable[]>;
+  autocompleteOn: Ref<boolean>;
   labelId?: string;
   isRunning?: () => boolean;
   onChange: (value: string) => void;
@@ -69,6 +67,7 @@ export interface UseSqlCodeMirrorOptions {
 export function useSqlCodeMirror(options: UseSqlCodeMirrorOptions) {
   const view = shallowRef<EditorView | null>(null);
   const languageCompartment = new Compartment();
+  const autocompleteCompartment = new Compartment();
 
   onMounted(() => {
     if (!options.container.value) return;
@@ -90,7 +89,10 @@ export function useSqlCodeMirror(options: UseSqlCodeMirrorOptions) {
     const state = EditorState.create({
       doc: options.initialValue,
       extensions: [
-        basicSetup,
+        setupExtensions,
+        autocompleteCompartment.of(
+          buildAutocompleteExtension(options.autocompleteOn.value),
+        ),
         keymap.of([indentWithTab]),
         runKeymap,
         languageCompartment.of(buildSqlLanguage(options.schema.value)),
@@ -131,6 +133,14 @@ export function useSqlCodeMirror(options: UseSqlCodeMirrorOptions) {
   watch(options.schema, (schema) => {
     view.value?.dispatch({
       effects: languageCompartment.reconfigure(buildSqlLanguage(schema)),
+    });
+  });
+
+  watch(options.autocompleteOn, (enabled) => {
+    view.value?.dispatch({
+      effects: autocompleteCompartment.reconfigure(
+        buildAutocompleteExtension(enabled),
+      ),
     });
   });
 

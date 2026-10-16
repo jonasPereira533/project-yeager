@@ -3,11 +3,6 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { CASES } from "../data/cases";
 
-/**
- * `validCaseIds()` em firestore.rules e uma lista digitada a mao que precisa
- * continuar batendo com src/data/cases.ts. Sem este teste a divergencia passa
- * despercebida e a escrita comeca a ser negada em producao.
- */
 const rulesSource = readFileSync(
   resolve(import.meta.dirname, "../../firestore.rules"),
   "utf8",
@@ -36,7 +31,6 @@ describe("firestore.rules x src/data/cases.ts", () => {
   });
 
   it("draftsByCase fica fora da verificacao monotonica", () => {
-    // Rascunho sobrescreve, então não pode passar por isMonotonic.
     expect(rulesSource).toContain(
       "field == 'draftsByCase' || isMonotonic(field)",
     );

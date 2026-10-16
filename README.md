@@ -17,6 +17,7 @@
     <a href="https://github.com/jonasPereira533/project-yeager">
       <img src="https://img.shields.io/badge/Código-fonte-42b883?logo=github&logoColor=black" alt="Repositório no GitHub" />
     </a>
+    <img src="https://img.shields.io/badge/vers%C3%A3o-v0.6.0-e8a33d" alt="Versão v0.6.0" />
   </p>
 
   <p>
@@ -154,6 +155,14 @@ usado pela VR Tech (módulos de vendas, estoque, financeiro, fiscal e permissõe
 - Editor CodeMirror 6 com dialeto SQLite case-insensitive, autocomplete de tabelas e colunas em dois
   níveis conforme o caso muda, `Tab` para indentar, quebra de linha automática e tema próprio (âmbar
   sobre fundo escuro).
+- As colunas oferecidas são as das tabelas que a frase atual usa de verdade. O `lang-sql` sozinho só
+  completa coluna depois do ponto (`Cli_For.`); uma segunda fonte de autocomplete lê o `FROM` e
+  completa também no `SELECT`, no `WHERE`, no `GROUP BY` e no `ORDER BY`. Com uma tabela no escopo a
+  coluna aparece crua, com duas ou mais vem qualificada (`Cli_For.Nome`) — `Nome` existe em cinco
+  tabelas do app, e sem o prefixo o SQLite resolveria pelo primeiro nome que achasse.
+- O autocomplete pode ser desligado pelo botão ao lado de **Investigar**, para escrever a consulta do
+  zero sem o editor entregando nome de tabela e coluna. A escolha fica no `localStorage`, sobrevive
+  ao refresh e vale para todos os casos; o padrão continua ligado.
 
 **Validação**
 
@@ -186,6 +195,10 @@ usado pela VR Tech (módulos de vendas, estoque, financeiro, fiscal e permissõe
 **Experiência**
 
 - Tema noir coerente com a identidade do produto (fundo `#14171c`, âmbar `#e8a33d`).
+- Confirmação do próprio navegador antes de recarregar com trabalho não conferido: some depois de
+  rodar a consulta e volta a aparecer na hora que você mexe no texto de novo. O aviso é o nativo —
+  desde o Chrome 88 e o Firefox 115 o navegador ignora qualquer texto customize —, e o listener só
+  fica registrado enquanto há o que proteger, para não desligar o cache de ida e volta.
 - Tipografia de máquinas de escrever (`Special Elite`) para títulos e `IBM Plex Mono` para o
   conteúdo técnico — o mesmo par do app.
 - Layout responsivo, navegação por teclado, `aria-*` nos componentes interativos, skip link e
@@ -230,17 +243,17 @@ Regras de autoria que o projeto segue:
 
 ## Stack
 
-| Camada       | Tecnologia                                                                                         | Por quê                                                     |
-| ------------ | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Interface    | [Vue 3.5](https://vuejs.org) (`<script setup>`, Composition API)                                   | componentes pequenos e legíveis                             |
-| Linguagem    | [TypeScript 6](https://www.typescriptlang.org)                                                     | tipos compartilhados entre caso, motor e UI                 |
-| Build        | [Vite 8](https://vite.dev)                                                                         | HMR rápido e chunks separados para Firebase e para o editor |
-| Rotas        | [vue-router 5](https://router.vuejs.org)                                                           | rotas `/`, `/cases`, `/solution` + 404                      |
-| Motor SQL    | [sql.js 1.14](https://sql.js.org)                                                                  | SQLite em WebAssembly dentro do navegador, sem servidor     |
-| Editor       | [CodeMirror 6](https://codemirror.net) + `@codemirror/lang-sql`                                    | dialeto SQLite e autocomplete                               |
-| Auth & dados | [Firebase 12](https://firebase.google.com) + [vuefire 3](https://vuefire.vuejs.org)                | Google Auth e progresso por usuário                         |
-| Testes       | [vitest](https://vitest.dev)                                                                             | regras da comparação, autocomplete e sincronia com `firestore.rules` |
-| Qualidade    | [ESLint 9](https://eslint.org) (flat config, `eslint-plugin-vue`, `typescript-eslint`) + `vue-tsc` | lint e typecheck no CI                                      |
+| Camada       | Tecnologia                                                                                         | Por quê                                                              |
+| ------------ | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Interface    | [Vue 3.5](https://vuejs.org) (`<script setup>`, Composition API)                                   | componentes pequenos e legíveis                                      |
+| Linguagem    | [TypeScript 6](https://www.typescriptlang.org)                                                     | tipos compartilhados entre caso, motor e UI                          |
+| Build        | [Vite 8](https://vite.dev)                                                                         | HMR rápido e chunks separados para Firebase e para o editor          |
+| Rotas        | [vue-router 5](https://router.vuejs.org)                                                           | rotas `/`, `/cases`, `/solution` + 404                               |
+| Motor SQL    | [sql.js 1.14](https://sql.js.org)                                                                  | SQLite em WebAssembly dentro do navegador, sem servidor              |
+| Editor       | [CodeMirror 6](https://codemirror.net) + `@codemirror/lang-sql`                                    | dialeto SQLite e autocomplete                                        |
+| Auth & dados | [Firebase 12](https://firebase.google.com) + [vuefire 3](https://vuefire.vuejs.org)                | Google Auth e progresso por usuário                                  |
+| Testes       | [vitest](https://vitest.dev)                                                                       | regras da comparação, autocomplete e sincronia com `firestore.rules` |
+| Qualidade    | [ESLint 9](https://eslint.org) (flat config, `eslint-plugin-vue`, `typescript-eslint`) + `vue-tsc` | lint e typecheck no CI                                               |
 
 ## Testes
 
@@ -365,13 +378,17 @@ project-yeager/
 │   ├── composables/
 │   │   ├── use-auth.ts           # popup do Google e classificação de erros
 │   │   ├── use-drafts.ts         # rascunho de consulta por caso/objetivo
+│   │   ├── use-editor-prefs.ts   # preferência do editor no localStorage
 │   │   ├── use-progress.ts       # XP, dicas e migração visitante → usuário
+│   │   ├── use-reload-guard.ts   # confirmação do navegador antes de recarregar
 │   │   ├── use-sql-codemirror.ts # instância do CodeMirror com o schema do caso
 │   │   └── use-sql-engine.ts     # carrega sql.js e monta o banco do caso
 │   ├── data/cases.ts             # todos os casos, objetivos e gabaritos
 │   ├── types/case.ts             # contrato de Case, Objective e níveis
-│   ├── utils/                    # comparação de resultados e tema do editor
+│   ├── utils/                    # comparação de resultados, tema e setup do editor
 │   │                              # *.spec.ts: testes de regras e de comparação
+│   │                              # sql-completion: colunas do escopo da frase
+│   │                              # reload-guard: quando avisar antes de recarregar
 │   ├── views/                    # main-page, case-page, solution-page, 404
 │   ├── firebase.ts               # inicialização do app Firebase
 │   ├── router/index.ts           # rotas e recuperação de chunk quebrado
@@ -386,17 +403,17 @@ project-yeager/
 
 ## Scripts
 
-| Comando             | O que faz                                       |
-| ------------------- | ----------------------------------------------- |
-| `npm run dev`       | servidor de desenvolvimento com HMR             |
-| `npm run build`     | `vue-tsc -b` + build de produção em `dist/`     |
-| `npm run preview`   | serve localmente o build de produção            |
-| `npm run typecheck` | checagem de tipos (`vue-tsc -b`)                |
-| `npm run lint`      | ESLint em todo o projeto                        |
-| `npm run lint:fix`  | ESLint corrigindo o que dá pra corrigir sozinho |
-| `npm run test`      | testes com vitest (comparação de resultados, autocomplete, regras do Firestore) |
-| `npm run test:watch` | vitest em modo watch                          |
-| `npm run check`     | o combo: typecheck + lint + test + build        |
+| Comando              | O que faz                                                                       |
+| -------------------- | ------------------------------------------------------------------------------- |
+| `npm run dev`        | servidor de desenvolvimento com HMR                                             |
+| `npm run build`      | `vue-tsc -b` + build de produção em `dist/`                                     |
+| `npm run preview`    | serve localmente o build de produção                                            |
+| `npm run typecheck`  | checagem de tipos (`vue-tsc -b`)                                                |
+| `npm run lint`       | ESLint em todo o projeto                                                        |
+| `npm run lint:fix`   | ESLint corrigindo o que dá pra corrigir sozinho                                 |
+| `npm run test`       | testes com vitest (comparação de resultados, autocomplete, regras do Firestore) |
+| `npm run test:watch` | vitest em modo watch                                                            |
+| `npm run check`      | o combo: typecheck + lint + test + build                                        |
 
 ## Integração contínua
 
@@ -431,9 +448,10 @@ arredondar não reprovam. O que importa é trazer a mesma resposta. Quando não 
 que não conferiu — quantas linhas, quantas colunas ou valores divergentes — sem entregar a query.
 
 **Meu rascunho some se eu fechar a aba?**
-Como visitante, não: fica no `localStorage`. Com login, vai para o Firestore e volta em qualquer
-máquina. O rascunho é por caso **e** por objetivo, então trabalhar no o3 não apaga o que você
-escreveu no o1.
+Como visitante, não: fica no `localStorage`, gravado a cada tecla. Com login, vai para o Firestore e
+volta em qualquer máquina. O rascunho é por caso **e** por objetivo, então trabalhar no o3 não apaga
+o que você escreveu no o1. O navegador pode pedir confirmação ao fechar ou dar F5, mas é o aviso
+padrão dele, em cima de trabalho ainda não conferido — o texto em si nunca se perde.
 
 **Posso usar `true` numa coluna `BOOLEAN`?**
 Pode. No SQLite não existe tipo booleano de verdade — a coluna é `NUMERIC` e o valor volta como `1`

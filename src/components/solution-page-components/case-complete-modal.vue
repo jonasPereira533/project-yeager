@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, ref } from "vue";
 import type { Case } from "../../types/case";
 import { CASES } from "../../data/cases";
 import { useProgress } from "../../composables/use-progress";
+import { useDialogFocusTrap } from "../../composables/use-dialog-focus-trap";
 
 const props = defineProps<{
   activeCase: Case;
@@ -43,67 +44,7 @@ const nextRoute = computed(() => {
 
 const dialog = ref<HTMLElement | null>(null);
 
-const FOCUSABLE = [
-  "a[href]",
-  "button:not([disabled])",
-  '[tabindex]:not([tabindex="-1"])',
-].join(", ");
-
-function focusables(): HTMLElement[] {
-  return dialog.value
-    ? Array.from(dialog.value.querySelectorAll<HTMLElement>(FOCUSABLE))
-    : [];
-}
-
-let previousOverflow = "";
-let returnFocusTo: HTMLElement | null = null;
-
-onMounted(() => {
-  returnFocusTo =
-    document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-  previousOverflow = document.body.style.overflow;
-  document.body.style.overflow = "hidden";
-  focusables()[0]?.focus();
-});
-
-onUnmounted(() => {
-  document.body.style.overflow = previousOverflow;
-  if (returnFocusTo?.isConnected) returnFocusTo.focus();
-});
-
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === "Escape") {
-    event.preventDefault();
-    emit("close");
-    return;
-  }
-
-  if (event.key !== "Tab") return;
-
-  const items = focusables();
-  if (!items.length) return;
-
-  const first = items[0];
-  const last = items[items.length - 1];
-  const current = document.activeElement;
-  if (!first || !last) return;
-
-  if (
-    event.shiftKey &&
-    (current === first || !dialog.value?.contains(current))
-  ) {
-    event.preventDefault();
-    last.focus();
-  } else if (
-    !event.shiftKey &&
-    (current === last || !dialog.value?.contains(current))
-  ) {
-    event.preventDefault();
-    first.focus();
-  }
-}
+const { onKeydown } = useDialogFocusTrap(dialog, () => emit("close"));
 </script>
 
 <template>

@@ -8,15 +8,15 @@ const { user } = useAuth();
   <section class="hero">
     <div>
       <div class="eyebrow">Treinamento interno — VR Tech</div>
-      <h1>Aprenda SQL<br />resolvendo casos reais.</h1>
+      <h1>Aprenda SQL<br />resolvendo chamados reais.</h1>
       <p>
         Yeager transforma o banco de dados da VR Tech em uma investigação.
-        Escolha um caso, escreva a consulta certa e descubra o que os registros
-        têm a esconder.
+        Escolha um chamado, escreva a consulta certa e descubra o que os
+        registros têm a esconder.
       </p>
       <div class="cta-row">
         <RouterLink :to="{ name: 'case-page' }" class="btn btn-ghost"
-          >Ver Casos</RouterLink
+          >Ver Chamados</RouterLink
         >
 
         <a

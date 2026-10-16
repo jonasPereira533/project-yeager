@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { useReloadGuard } from "../composables/use-reload-guard";
 
 const routes = [
   {
@@ -43,6 +44,7 @@ router.onError((error, to) => {
     const key = "yeager:chunk-reload";
     if (sessionStorage.getItem(key) !== to.fullPath) {
       sessionStorage.setItem(key, to.fullPath);
+      useReloadGuard().bypassNext();
       window.location.assign(to.fullPath);
       return;
     }
