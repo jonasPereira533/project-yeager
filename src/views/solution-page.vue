@@ -26,6 +26,12 @@ import type {
 } from "../types/case";
 import { useRoute } from "vue-router";
 import CaseRules from "../components/solution-page-components/case-rules.vue";
+import {
+  caseHasUpdates,
+  initialStateSQL,
+  isUpdateObjective,
+  validateUpdate,
+} from "../utils/verify-update";
 
 const { createDatabase } = useSqlEngine();
 const { markSolved, isSolved } = useProgress();
@@ -54,28 +60,32 @@ const settledQuery = ref("");
 const { setState: setReloadState, disarm: disarmReload } = useReloadGuard();
 
 watch(
-  [queryText, settledQuery],
-  () => {
-    setReloadState({
-      settled: settledQuery.value,
-      current: queryText.value,
-    });
-  },
-  { immediate: true },
+    [queryText, settledQuery],
+    () => {
+      setReloadState({
+        settled: settledQuery.value,
+        current: queryText.value,
+      });
+    },
+    { immediate: true },
 );
 
 let runSeq = 0;
 
 let isRestoringDraft = false;
 
+// Enquanto o banco é recriado, o botão Investigar é ignorado para a consulta
+// não rodar no banco antigo.
+let isRestoringDatabase = false;
+
 const activeCase = computed<Case | undefined>(() =>
-  CASES.find((c) => c.id === activeCaseId.value),
+    CASES.find((c) => c.id === activeCaseId.value),
 );
 const activeObjective = computed(
-  () =>
-    activeCase.value?.objectives.find(
-      (o) => o.id === activeObjectiveId.value,
-    ) ?? null,
+    () =>
+        activeCase.value?.objectives.find(
+            (o) => o.id === activeObjectiveId.value,
+        ) ?? null,
 );
 
 const showCompleteModal = ref(false);
@@ -88,26 +98,26 @@ function quoteIdentifier(name: string): string {
 
 function readSchema(database: Database): SchemaTable[] {
   const tablesRes = database.exec(
-    "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;",
+      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;",
   );
   if (!tablesRes.length) return [];
 
   return tablesRes[0].values
-    .map((row) => String(row[0]))
-    .filter((tableName) => !tableName.startsWith("sqlite_"))
-    .map((tableName) => {
-      const quoted = BARE_IDENTIFIER.test(tableName)
-        ? tableName
-        : quoteIdentifier(tableName);
-      const info = database.exec(`PRAGMA table_info(${quoted});`);
-      const columns = info.length
-        ? info[0].values.map((col) => ({
-            name: String(col[1]),
-            type: String(col[2]),
-          }))
-        : [];
-      return { name: tableName, columns };
-    });
+      .map((row) => String(row[0]))
+      .filter((tableName) => !tableName.startsWith("sqlite_"))
+      .map((tableName) => {
+        const quoted = BARE_IDENTIFIER.test(tableName)
+            ? tableName
+            : quoteIdentifier(tableName);
+        const info = database.exec(`PRAGMA table_info(${quoted});`);
+        const columns = info.length
+            ? info[0].values.map((col) => ({
+              name: String(col[1]),
+              type: String(col[2]),
+            }))
+            : [];
+        return { name: tableName, columns };
+      });
 }
 
 const route = useRoute();
@@ -148,12 +158,22 @@ async function loadCase(caseId: string) {
       return;
     }
 
+    // O objetivo que vai abrir define em que estado os dados começam.
+    const objectiveIds = c.objectives.map((o) => o.id);
+    const savedObjectiveId = getActiveObjective(caseId);
+    const objectiveId =
+        savedObjectiveId && objectiveIds.includes(savedObjectiveId)
+            ? savedObjectiveId
+            : (objectiveIds[0] ?? null);
+
     let nextDb: Database | undefined;
     try {
-      nextDb = await createDatabase(c.setupSQL);
+      nextDb = await createDatabase(
+          objectiveId ? initialStateSQL(c, objectiveId) : c.setupSQL,
+      );
     } catch (error) {
       engineError.value =
-        "Não foi possível baixar o motor SQLite (sql.js). Verifique sua conexão.";
+          "Não foi possível baixar o motor SQLite (sql.js). Verifique sua conexão.";
       console.error("Falha ao carregar o motor sql.js:", error);
       return;
     }
@@ -174,13 +194,6 @@ async function loadCase(caseId: string) {
 
     db.value?.close();
     db.value = nextDb;
-
-    const objectiveIds = c.objectives.map((o) => o.id);
-    const savedObjectiveId = getActiveObjective(caseId);
-    const objectiveId =
-      savedObjectiveId && objectiveIds.includes(savedObjectiveId)
-        ? savedObjectiveId
-        : (objectiveIds[0] ?? null);
 
     activeObjectiveId.value = objectiveId;
     queryText.value = objectiveId ? getDraft(caseId, objectiveId) : "";
@@ -213,6 +226,36 @@ function selectObjective(objectiveId: string) {
 
   setActiveObjective(caseId, objectiveId);
   feedback.value = { type: "none", message: "" };
+
+  const caseItem = activeCase.value;
+  if (caseItem && caseHasUpdates(caseItem)) {
+    void restoreDatabase(caseItem, objectiveId);
+  }
+}
+
+async function restoreDatabase(caseItem: Case, objectiveId: string) {
+  isRestoringDatabase = true;
+  try {
+    const fresh = await createDatabase(initialStateSQL(caseItem, objectiveId));
+    if (
+        activeCaseId.value !== caseItem.id ||
+        activeObjectiveId.value !== objectiveId
+    ) {
+      fresh.close();
+      return;
+    }
+    db.value?.close();
+    db.value = fresh;
+  } catch (error) {
+    console.error("Falha ao restaurar os dados do caso:", error);
+    feedback.value = {
+      type: "error",
+      message:
+          "Não foi possível restaurar os dados do caso. Recarregue a página.",
+    };
+  } finally {
+    isRestoringDatabase = false;
+  }
 }
 
 watch([queryText, activeObjectiveId, activeCaseId], () => {
@@ -224,7 +267,7 @@ watch([queryText, activeObjectiveId, activeCaseId], () => {
 });
 
 async function runQuery() {
-  if (isRunning.value) return;
+  if (isRunning.value || isRestoringDatabase) return;
 
   const database = db.value;
   const sql = queryText.value.trim();
@@ -246,12 +289,17 @@ async function runQuery() {
 }
 
 async function execute(
-  database: Database,
-  sql: string,
-  caseId: string,
-  objective: Objective | null,
-  seq: number,
+    database: Database,
+    sql: string,
+    caseId: string,
+    objective: Objective | null,
+    seq: number,
 ) {
+  if (objective && isUpdateObjective(objective)) {
+    await executeUpdate(database, sql, caseId, objective, seq);
+    return;
+  }
+
   let execResult;
   try {
     execResult = database.exec(sql);
@@ -260,8 +308,8 @@ async function execute(
     feedback.value = {
       type: "error",
       message:
-        "Erro na consulta: " +
-        (err instanceof Error ? err.message : String(err)),
+          "Erro na consulta: " +
+          (err instanceof Error ? err.message : String(err)),
     };
     return;
   }
@@ -292,7 +340,7 @@ async function execute(
     feedback.value = {
       type: "error",
       message:
-        "Consulta correta, mas não foi possível salvar seu progresso. Verifique sua conexão.",
+          "Consulta correta, mas não foi possível salvar seu progresso. Verifique sua conexão.",
     };
     return;
   }
@@ -300,15 +348,97 @@ async function execute(
   feedback.value = {
     type: "solved",
     message:
-      outcome === "new"
-        ? `CHAMADO ENCERRADO · +${objective.xp} XP`
-        : "JÁ RESOLVIDO",
+        outcome === "new"
+            ? `CHAMADO ENCERRADO · +${objective.xp} XP`
+            : "JÁ RESOLVIDO",
   };
 
   if (outcome === "new" && activeCase.value) {
     showCompleteModal.value = isCaseComplete(
-      activeCase.value.objectives,
-      (objectiveId) => isSolved(caseId, objectiveId),
+        activeCase.value.objectives,
+        (objectiveId) => isSolved(caseId, objectiveId),
+    );
+  }
+}
+
+async function executeUpdate(
+    database: Database,
+    sql: string,
+    caseId: string,
+    objective: Objective,
+    seq: number,
+) {
+  const caseItem = activeCase.value;
+  if (!caseItem) return;
+
+  let execResult;
+  try {
+    execResult = database.exec(sql);
+  } catch (err) {
+    result.value = null;
+    feedback.value = {
+      type: "error",
+      message:
+          "Erro na consulta: " +
+          (err instanceof Error ? err.message : String(err)) +
+          "\n\nOs dados foram restaurados para você tentar de novo.",
+    };
+    await restoreDatabase(caseItem, objective.id);
+    return;
+  }
+
+  // UPDATE não devolve tabela: mostra quantas linhas o comando alterou.
+  result.value = execResult.length
+      ? toQueryResult(execResult)
+      : {
+        columns: ["linhas_alteradas"],
+        values: [[database.getRowsModified()]],
+      };
+
+  const outcome = await validateUpdate({
+    database,
+    caseItem,
+    objective,
+    createDatabase,
+  });
+
+  if (seq !== runSeq) return;
+
+  if (!outcome.match) {
+    feedback.value = {
+      type: "open",
+      message: "AINDA EM ABERTO",
+      detail: `${outcome.detail} Os dados foram restaurados para você tentar de novo.`,
+    };
+    await restoreDatabase(caseItem, objective.id);
+    return;
+  }
+
+  const saved = await markSolved(caseId, objective.id);
+
+  if (seq !== runSeq) return;
+
+  if (saved === "error") {
+    feedback.value = {
+      type: "error",
+      message:
+          "Consulta correta, mas não foi possível salvar seu progresso. Verifique sua conexão.",
+    };
+    return;
+  }
+
+  feedback.value = {
+    type: "solved",
+    message:
+        saved === "new"
+            ? `CHAMADO ENCERRADO · +${objective.xp} XP`
+            : "JÁ RESOLVIDO",
+  };
+
+  if (saved === "new") {
+    showCompleteModal.value = isCaseComplete(
+        caseItem.objectives,
+        (objectiveId) => isSolved(caseId, objectiveId),
     );
   }
 }
@@ -330,7 +460,7 @@ onUnmounted(() => {
   <div v-if="!activeCase" class="not-found">
     <p>Chamado não encontrado.</p>
     <RouterLink :to="{ name: 'main-page' }"
-      >← Voltar pra fila de chamados</RouterLink
+    >← Voltar pra fila de chamados</RouterLink
     >
   </div>
 
@@ -342,7 +472,7 @@ onUnmounted(() => {
         <span class="nivel">{{ activeCase.level }}</span>
       </div>
       <RouterLink :to="{ name: 'case-page' }"
-        >← Voltar pra fila de chamados</RouterLink
+      >← Voltar pra fila de chamados</RouterLink
       >
     </div>
 
@@ -351,46 +481,46 @@ onUnmounted(() => {
       <CaseTabs v-model="activeTab" :tabs="TABS" />
 
       <section
-        v-show="activeTab === 'ficha'"
-        id="panel-ficha"
-        class="desk"
-        role="tabpanel"
-        aria-labelledby="tab-ficha"
-        tabindex="0"
+          v-show="activeTab === 'ficha'"
+          id="panel-ficha"
+          class="desk"
+          role="tabpanel"
+          aria-labelledby="tab-ficha"
+          tabindex="0"
       >
         <DossierBriefing :active-case="activeCase" />
         <CaseRules />
       </section>
 
       <section
-        v-show="activeTab === 'investigacao'"
-        id="panel-investigacao"
-        class="desk"
-        role="tabpanel"
-        aria-labelledby="tab-investigacao"
-        tabindex="0"
+          v-show="activeTab === 'investigacao'"
+          id="panel-investigacao"
+          class="desk"
+          role="tabpanel"
+          aria-labelledby="tab-investigacao"
+          tabindex="0"
       >
         <div class="investigacao-grid">
           <aside>
             <ObjectiveList
-              :active-case="activeCase"
-              :active-objective-id="activeObjectiveId"
-              @select="selectObjective"
+                :active-case="activeCase"
+                :active-objective-id="activeObjectiveId"
+                @select="selectObjective"
             />
             <SchemaPanel :tables="schema" />
           </aside>
 
           <div class="investigation-main">
             <QuestionPanel
-              :objective="activeObjective"
-              :case-id="activeCaseId"
+                :objective="activeObjective"
+                :case-id="activeCaseId"
             />
 
             <SqlEditor
-              v-model="queryText"
-              :schema="schema"
-              :running="isRunning"
-              @run="runQuery"
+                v-model="queryText"
+                :schema="schema"
+                :running="isRunning"
+                @run="runQuery"
             >
               <template #feedback>
                 <FeedbackStamp :feedback="feedback" />
@@ -403,9 +533,9 @@ onUnmounted(() => {
     </template>
 
     <CaseCompleteModal
-      v-if="showCompleteModal && activeCase"
-      :active-case="activeCase"
-      @close="showCompleteModal = false"
+        v-if="showCompleteModal && activeCase"
+        :active-case="activeCase"
+        @close="showCompleteModal = false"
     />
   </div>
 </template>

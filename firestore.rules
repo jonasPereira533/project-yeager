@@ -17,8 +17,13 @@ service cloud.firestore {
         'valor-final-divergente-ipi',
         'vencimento-parcela-divergente',
         'caixa-travado-funcionario-inativo',
-        'bug-troco-forma-pagamento'
+        'bug-troco-forma-pagamento',
+        'caixa-travado-funcionario-inativo',
+        'bug-troco-forma-pagamento',
+        'rejeicao-535-frete',
+        'sped-icms-cst60-entrada'
       ];
+
     }
 
     function validObjectiveIds() {

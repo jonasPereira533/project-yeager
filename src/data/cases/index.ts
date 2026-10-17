@@ -13,9 +13,8 @@ import { caso011 } from "./011-valor-final-divergente-ipi";
 import { caso012 } from "./012-vencimento-parcela-divergente";
 import { caso013 } from "./013-caixa-travado-funcionario-inativo";
 import { caso014 } from "./014-bug-troco-forma-pagamento";
-// Ativar só depois da regra de validação de UPDATE:
-// import { caso015 } from "./015-rejeicao-535-frete";
-// import { caso016 } from "./016-sped-icms-cst60-entrada";
+import { caso015 } from "./015-rejeicao-535-frete";
+import { caso016 } from "./016-sped-icms-cst60-entrada";
 
 export const CASES: Case[] = [
   caso001,
@@ -32,6 +31,6 @@ export const CASES: Case[] = [
   caso012,
   caso013,
   caso014,
-  // caso015,
-  // caso016,
+  caso015,
+  caso016,
 ];

@@ -6,12 +6,16 @@ export const CASE_LEVELS = [
   "Avançado",
 ] as const satisfies readonly CaseLevel[];
 
+export type ObjectiveKind = "select" | "update";
+
 export interface Objective {
   id: string;
   xp: number;
   question: string;
   hint: string;
   refSQL: string;
+  kind?: ObjectiveKind;
+  verifySQL?: string;
 }
 
 export interface Case {
