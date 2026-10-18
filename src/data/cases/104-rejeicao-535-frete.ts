@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso015: Case = {
+export const caso104: Case = {
     id: "rejeicao-535-frete",
-    caseNumber: "015",
+    caseNumber: "104",
     title: "Rejeição 535 no Frete da Nota",
     level: "Iniciante",
     category: "Suporte Técnico — Fiscal",

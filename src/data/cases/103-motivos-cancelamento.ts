@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso003: Case = {
+export const caso103: Case = {
   id: "motivos-cancelamento",
-  caseNumber: "003",
+  caseNumber: "103",
   title: "Motivos de Cancelamento Bagunçados",
   level: "Iniciante",
   category: "Suporte Técnico — Configuração",

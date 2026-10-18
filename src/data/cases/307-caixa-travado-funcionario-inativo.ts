@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso013: Case = {
+export const caso307: Case = {
   id: "caixa-travado-funcionario-inativo",
-  caseNumber: "013",
+  caseNumber: "307",
   title: "Caixa que Não Fecha por Funcionário Inativo",
   level: "Avançado",
   category: "Suporte Técnico — Caixa/RH",

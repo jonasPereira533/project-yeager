@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso016: Case = {
+export const caso309: Case = {
     id: "sped-icms-cst60-entrada",
-    caseNumber: "016",
+    caseNumber: "309",
     title: "SPED com ICMS Indevido no CST 60",
     level: "Avançado",
     category: "Suporte Técnico — Fiscal",

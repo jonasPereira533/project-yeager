@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso018: Case = {
+export const caso205: Case = {
     id: "data-emissao-futura",
-    caseNumber: "018",
+    caseNumber: "205",
     title: "Notas com Data de Emissão no Futuro",
     level: "Intermediário",
     category: "Suporte Técnico — Fiscal",
