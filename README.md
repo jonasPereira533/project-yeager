@@ -368,13 +368,23 @@ definição; quem protege o dado são as regras.
   inflar XP nem apagar histórico pelo cliente. `draftsByCase` fica de fora dessa regra de
   monotonicidade de propósito: rascunho é sobrescrito a cada tecla, então precisa poder encolher.
 
-Publicando as regras com o [Firebase CLI](https://firebase.google.com/docs/cli) instalado:
+Publicando as regras com o [Firebase CLI](https://firebase.google.com/docs/cli):
 
 ```bash
+npm i -g firebase-tools     # precisa do Java? não — só o emulador precisa
 firebase login
-firebase use seu-projeto
+firebase init firestore     # detecta o firestore.rules existente e reaproveita
+firebase use --add          # grava o .firebaserc com o id do projeto
 firebase deploy --only firestore:rules
 ```
+
+O `firebase.json` do repositório já aponta `firestore.rules` para a raiz, então o `init` serve só
+para criar o vínculo com o projeto. O passo que costuma faltar é o `use --add`: sem ele o
+`deploy` reclama de não estar num projeto.
+
+> **Publicando pela primeira vez, ou passando o bastão para outra pessoa?** Siga o
+> [DEPLOY-FIRESTORE.md](./DEPLOY-FIRESTORE.md) — traz o passo a passo com verificação e rollback, e
+> explica por que o placar abre vazio logo depois do deploy.
 
 > Ao **adicionar um caso novo**, inclua o `id` dele em `validCaseIds()` dentro de `firestore.rules`,
 > senão o progresso desse caso não é salvo para quem estiver logado. O teste em
@@ -468,6 +478,34 @@ Para colocar alguém:
 2. Firestore → criar a coleção `devs` → documento com **id igual ao uid** e o campo
    `displayName` (só serve para o console ficar legível).
 
+### Depois de publicar as regras: o placar nasce vazio
+
+As regras novas não preenchem nada retroativamente. Cada jogador publica a própria linha no próximo
+login, e **sem `sector`**, porque o setor é escolhido por ele na primeira vez que abre `/ranking`.
+
+Como o seletor abre em `Partner` e ninguém tem setor ainda, o placar fica vazio logo após o deploy. A
+única pista é a linha "N jogadores ainda não escolheu setor". Duas saídas:
+
+- avisar o time para abrir `/ranking` uma vez e escolher o setor — é o caminho honesto, e o setor
+  escolhido é o de verdade;
+- semear `sector` pelo console para todo mundo já de cara — o placar enche na hora, mas **trava cada
+  pessoa no setor que você escolheu por ela**. Funciona enquanto `Partner` for o setor de todo mundo
+  e vira o erro do dia que alguém for de `Final`.
+
+O progresso em si aparece sozinho; o que precisa desse toque é só o recorte por setor.
+
+### O que não foi verificado
+
+As regras do placar nunca foram executadas: o CI roda vitest em `environment: "node"`, que não fala
+com o Firestore, e o emulador não está no workflow. O `src/utils/leaderboard-rules.spec.ts` confere
+a **estrutura** por leitura de fonte (os campos do `hasOnly`, o teto de nome, o separador da chave,
+`validSectorIds()` contra `SECTORS`, a existência de `keepsSector()` e de `devs`), o que não é o
+mesmo que executar `request.time`, `hasAll` ou `key.split()`.
+
+O raio de efeito de um erro ali é o placar: o bloco `match /users` continua idêntico ao que já está em
+produção, então o progresso de quem joga não para de salvar. Para fechar essa lacuna de verdade o
+caminho é `@firebase/rules-unit-testing` com o emulador no CI — e o emulador exige Java.
+
 ### Quem já tinha jogado antes do placar existir
 
 O progresso antigo **entra sozinho**: cada jogador publica a própria linha no próximo login, sem
@@ -543,11 +581,13 @@ project-yeager/
 │   ├── router/index.ts           # rotas e recuperação de chunk quebrado
 │   └── base.css                  # paleta, fontes e utilidades acessíveis
 ├── .env.example                  # variáveis VITE_FIREBASE_* esperadas
-├── firestore.rules               # segurança do progresso e do placar
+├── firebase.json                 # aponta firestore.rules para o deploy
+├── firestore.rules               # segurança do progresso, do placar e dos devs
 ├── index.html
 ├── vite.config.ts
 ├── LICENSE
-└── README.md
+├── README.md
+└── DEPLOY-FIRESTORE.md      # passo a passo de publicar as regras, com rollback
 ```
 
 ## Scripts
