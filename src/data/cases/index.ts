@@ -15,6 +15,8 @@ import { caso013 } from "./013-caixa-travado-funcionario-inativo";
 import { caso014 } from "./014-bug-troco-forma-pagamento";
 import { caso015 } from "./015-rejeicao-535-frete";
 import { caso016 } from "./016-sped-icms-cst60-entrada";
+import { caso017 } from "./017-frete-cobrado-outras-despesas.ts";
+import { caso018 } from "./018-data-emissao-futura.ts";
 
 export const CASES: Case[] = [
   caso001,
@@ -33,4 +35,6 @@ export const CASES: Case[] = [
   caso014,
   caso015,
   caso016,
+  caso017,
+  caso018,
 ];
