@@ -110,7 +110,7 @@ onde você parou, inclusive o objetivo selecionado.
 
 ## Casos disponíveis
 
-14 casos, 42 objetivos, 1285 XP no total. Todos vieram do `etrade2.sql`, o banco do sistema de gestão
+16 casos, 47 objetivos, 1450 XP no total. Todos vieram do `etrade2.sql`, o banco do sistema de gestão
 usado pela VR Tech (módulos de vendas, estoque, financeiro, fiscal e permissões).
 
 | Nº  | Caso                                                  | Nível         | Categoria                           | Tabelas                                               | XP  |
@@ -191,6 +191,20 @@ usado pela VR Tech (módulos de vendas, estoque, financeiro, fiscal e permissõe
 - Login opcional com Google (Firebase Auth) e progresso por usuário no Firestore, com regras de
   segurança que permitem apenas leitura/escrita do próprio documento e apenas crescimento de
   progresso — nada de trancar XP, deletar histórico ou escrever chave de outra pessoa.
+- Placar em `/ranking`: todo mundo logado ordenado por XP, com os 20 primeiros e a sua linha
+  presa no fim quando ela não cabe no corte. O XP do placar é o mesmo do header, calculado pela
+  mesma função.
+- O placar é dividido por setor (`Partner`, `Final`, `Prime`, `Implantação`, `Outro`), escolhido uma
+  vez na primeira visita. Todos os selos são por setor: trocar o setor no seletor troca o resultado.
+- Quem está em `devs/` no Firestore fica fora do placar inteiro, para o progresso de quem escreve o
+  jogo não competir com quem joga.
+
+**Selos** — todos do setor aberto
+
+- `1º` `2º` `3º` para os três primeiros do seu setor.
+- `SEM NENHUMA DICA` para quem fechou os 16 chamados sem abrir uma única dica.
+- `PRIMEIRO A FECHAR A FILA` para o primeiro do setor a fechar tudo, com o horário carimbado pelo
+  servidor e congelado pelas regras, então não dá para tomar o selo depois.
 
 **Experiência**
 
@@ -257,17 +271,25 @@ Regras de autoria que o projeto segue:
 
 ## Testes
 
-`npm run test` roda a suíte vitest (134 testes, sem navegador e sem rede — o sql.js e o parser do
-CodeMirror rodam em node). Ela cobre três coisas que valem mais que teste de componente:
+`npm run test` roda a suíte vitest (271 testes, sem navegador e sem rede — o sql.js e o parser do
+CodeMirror rodam em node). Ela cobre o que dá para testar sem DOM:
 
 - **As regras da comparação** (`src/utils/compare-results.spec.ts`) — uma testaria por regra, mais
   o comportamento do `toQueryResult` na hora de limpar o cabeçalho de coluna.
-- **Os gabaritos de verdade** (`src/utils/compare-results.cases.spec.ts`) — roda os 42 `refSQL` de
+- **Os gabaritos de verdade** (`src/utils/compare-results.cases.spec.ts`) — roda os 47 `refSQL` de
   todos os casos contra o próprio `setupSQL` e confirma que continuam casando. É o que garante que
   afrouxar a comparação não quebrou nenhum gabarito, e que linhas embaralhadas continuam valendo.
 - **O `firestore.rules`** (`src/composables/use-drafts.spec.ts`) — confere que a allowlist de
   `validCaseIds()` bate com `src/data/cases.ts` e que `draftsByCase` ficou de fora da regra de
   monotonicidade.
+- **As regras do placar** (`src/utils/leaderboard-rules.spec.ts`) — confere por leitura de fonte que
+  os campos que o cliente escreve são os que o `hasOnly` aceita, que o teto do nome e o separador da
+  chave são os mesmos dos dois lados, que `completedAt` continua congelado, que `validSectorIds()`
+  bate com `SECTORS` e que `devs/` não aceita escrita. Não executa regra: o emulador do Firestore não
+  roda no CI.
+- **A ordenação e os selos** (`src/utils/ranking.spec.ts`, `src/utils/xp.spec.ts`) — a cascata de
+  desempate do placar, o corte por setor, a exclusão de devs antes de ordenar, as três regras de selo
+  e a fórmula única de XP.
 - **O autocomplete** (`src/composables/use-sql-codemirror.spec.ts`) — que a fonte de completamento
   real do `lang-sql` devolve tabela como `class`, coluna como `property` e nenhuma sugestão
   embrulhada em crase.
@@ -358,6 +380,128 @@ firebase deploy --only firestore:rules
 > senão o progresso desse caso não é salvo para quem estiver logado. O teste em
 > `src/composables/use-drafts.spec.ts` falha se essa lista e `src/data/cases.ts` divergirem.
 
+## Placar
+
+`/ranking` ordena todo mundo que entrou com conta por XP. O XP é o mesmo número do cabeçalho: vem
+de `computeTotalXP` em `src/utils/xp.ts`, chamado tanto pelo header quanto pelo placar, para um selo
+nunca discordar do outro.
+
+Cada linha pode trazer três selos:
+
+| Selo | Quando |
+| --- | --- |
+| `1º` `2º` `3º` | posição no setor |
+| `SEM NENHUMA DICA` | fechou os 16 chamados sem abrir uma única dica |
+| `PRIMEIRO A FECHAR A FILA` | o menor `completedAt` entre quem é do setor e fechou tudo |
+
+**O placar não guarda XP pronto.** O documento público guarda as chaves `caseId:objectiveId` dos
+objetivos resolvidos, e o XP é recalculado a partir de `CASES` na hora de renderizar. Assim, incluir
+um caso novo re-resolve o placar inteiro sem migração — e um cliente não consegue inventar XP, porque
+cada chave é validada contra `validCaseIds()`/`validObjectiveIds()` pelas regras.
+
+O documento `leaderboard/{uid}` é de leitura pública e de escrita só pelo dono:
+
+```ts
+{
+  displayName: "Jonas",
+  solved: ["clientes-bloqueados:o1", "estoque-abaixo-minimo:o2"],
+  hints: ["clientes-bloqueados:o3"],
+  sector: "Partner",
+  completedAt: Timestamp,
+  updatedAt: Timestamp,
+}
+```
+
+`displayName` é o primeiro nome do Google, com teto de 40 caracteres. `sector`, `completedAt` e
+`updatedAt` são opcionais: `sector` nasce ausente e é escolhido uma vez, `completedAt` só é escrito
+na transição para fila fechada, e `updatedAt` tem de ser `== request.time`.
+
+Regras que valem a pena conhecer antes de mexer:
+
+- `solved` e `hints` só podem **crescer** (`hasAll` contra o documento anterior).
+- `updatedAt` e `completedAt` precisam ser `== request.time`, ou seja, o relógio é do servidor.
+- `completedAt` é **congelado na primeira vez** (`keepsCompletion()`). Sem isso, um sync posterior
+  sobrescreveria o horário original e o selo passaria para o jogador seguinte.
+- `sector` é **travado depois da primeira escolha** (`keepsSector()`). Linha sem setor pode ganhá-lo,
+  linha com setor só pode manter.
+- `solved.size() > 0`: ninguém entra no placar antes de fechar o primeiro objetivo.
+
+### Setores
+
+`Partner`, `Final`, `Prime`, `Implantação` e `Outro`. A lista mora em `SECTORS`
+(`src/utils/ranking.ts`) e o espelho exato está em `validSectorIds()` no `firestore.rules` — um spec
+compara as duas, então adicionar um setor em um dos dois lados sem o outro quebra o `npm run test`.
+
+O jogador escolhe uma vez, na primeira vez que abre o placar. Enquanto não escolher, a linha existe
+mas não aparece em nenhum recorte, e o placar avisa quantos estão assim.
+
+O que o setor decide: **tudo**. Os três selos são avaliados só dentro do recorte que está aberto —
+trocar de setor no seletor troca o resultado dos três.
+
+| Selo | Escopo |
+| --- | --- |
+| posição, `rank`, medalhas `1º` `2º` `3º` | setor aberto |
+| `PRIMEIRO A FECHAR A FILA` | setor aberto — o menor `completedAt` **entre quem é do setor** |
+| `SEM NENHUMA DICA` | setor aberto — mas é sobre a sua run, então é o mesmo em qualquer recorte |
+
+Não existe selo global. Cada setor tem o seu primeiro a fechar a fila, e ao abrir um setor novo o
+selo recomeça nele: quem já tinha fechado tudo antes não tem `completedAt`, então não entra na disputa
+(com ver "Quem já tinha jogado antes do placar existir" abaixo).
+
+Como o setor é travado na primeira escolha, dá para trocar de setor **uma vez só** — o resto é
+consequência de o setor ser um recorte honesto, não uma brecha: escolher o setor mais vazio logo de
+início rende ouro e o primeiro a fechar daquele setor.
+
+### Devs fora do placar
+
+Quem tem documento em `devs/{uid}` não aparece: não ocupa vaga, não empurra ninguém para baixo e não
+segura o selo de primeiro a fechar. O filtro roda **antes** de ordenar — depois, o dev ocuparia
+posição e levaria uma medalha que é de outra pessoa.
+
+Nada impede o cliente de escrever nessa coleção — as regras recusam, com `allow write: if false`. Só o
+console do Firebase cria. Ler é público, e isso não expõe nada a mais: o mesmo `uid` já aparece como
+id de documento em `leaderboard/`.
+
+Para colocar alguém:
+
+1. Firebase console → **Authentication** → copiar o `uid` da pessoa;
+2. Firestore → criar a coleção `devs` → documento com **id igual ao uid** e o campo
+   `displayName` (só serve para o console ficar legível).
+
+### Quem já tinha jogado antes do placar existir
+
+O progresso antigo **entra sozinho**: cada jogador publica a própria linha no próximo login, sem
+precisar de script nem de migração. XP, chamados e selos aparecem normais.
+
+O que **não** volta é o carimbo de `completedAt`, porque esse instante nunca foi gravado — o
+`hasOnlyAppFields()` das regras do `users/{uid}` não permitia nenhum campo de tempo, e não existe
+log nenhum com essa data. Não dá para reconstruir quem fechou a fila primeiro antes do lançamento.
+
+Então o carimbo é dado **só para quem fecha a fila daqui pra frente**. Quem já tinha terminado tudo
+entra no quadro com XP e com o selo de sem nenhuma dica, mas sem o de primeiro a fechar. Sem essa
+distinção, o selo iria para quem só logou primeiro depois do deploy — um prêmio visível, permanente
+e factualmente errado.
+
+Um backfill por script não resolve essa parte: ele até consegue escrever `solved`/`hints` de todo
+mundo, mas `completedAt` continuaria sem data real. Publicar esses carimbos exigiria
+`firebase-admin` com credencial de serviço, porque as regras só deixam o dono escrever a própria
+linha.
+
+### O que isso expõe
+
+A coleção é lida por qualquer pessoa, **inclusive visitante sem conta**. O que vira público é o
+primeiro nome do Google e quais objetivos cada pessoa já resolveu. É uma escolha consciente: o
+progresso de um jogo de SQL é o mesmo que o placar precisa mostrar.
+
+O que as regras **não** garantem: um jogador pode escolher *não* declarar uma dica que abriu, para
+conquistar o selo de sem nenhuma dica. Pegar isso exigiria recalcular o XP no servidor a partir do
+documento privado — ou seja, Cloud Functions, que este projeto não usa.
+
+### Escala
+
+`useRanking` lê a coleção inteira e ordena no cliente. Com a base crescendo, o certo é trocar por
+`orderBy` + paginação.
+
 ## Estrutura do projeto
 
 ```text
@@ -373,28 +517,33 @@ project-yeager/
 │   ├── components/
 │   │   ├── case-page-components/     # catálogo de casos
 │   │   ├── main-page-components/     # hero + como funciona
+│   │   ├── ranking-page-components/  # placar, selos e escolha de setor
 │   │   ├── shared-components/        # header e footer
 │   │   └── solution-page-components/ # editor, schema, objetivos, carimbo, modal
 │   ├── composables/
-│   │   ├── use-auth.ts           # popup do Google e classificação de erros
-│   │   ├── use-drafts.ts         # rascunho de consulta por caso/objetivo
-│   │   ├── use-editor-prefs.ts   # preferência do editor no localStorage
-│   │   ├── use-progress.ts       # XP, dicas e migração visitante → usuário
-│   │   ├── use-reload-guard.ts   # confirmação do navegador antes de recarregar
-│   │   ├── use-sql-codemirror.ts # instância do CodeMirror com o schema do caso
-│   │   └── use-sql-engine.ts     # carrega sql.js e monta o banco do caso
+│   │   ├── use-auth.ts                # popup do Google e classificação de erros
+│   │   ├── use-drafts.ts              # rascunho de consulta por caso/objetivo
+│   │   ├── use-editor-prefs.ts        # preferência do editor no localStorage
+│   │   ├── use-leaderboard-entry.ts   # publica o progresso e o setor em leaderboard/{uid}
+│   │   ├── use-progress.ts            # XP, dicas e migração visitante → usuário
+│   │   ├── use-ranking.ts             # lê e ordena o placar
+│   │   ├── use-reload-guard.ts        # confirmação do navegador antes de recarregar
+│   │   ├── use-sql-codemirror.ts      # instância do CodeMirror com o schema do caso
+│   │   └── use-sql-engine.ts          # carrega sql.js e monta o banco do caso
 │   ├── data/cases.ts             # todos os casos, objetivos e gabaritos
 │   ├── types/case.ts             # contrato de Case, Objective e níveis
 │   ├── utils/                    # comparação de resultados, tema e setup do editor
 │   │                              # *.spec.ts: testes de regras e de comparação
 │   │                              # sql-completion: colunas do escopo da frase
 │   │                              # reload-guard: quando avisar antes de recarregar
-│   ├── views/                    # main-page, case-page, solution-page, 404
+│   │                              # xp: fórmula única de XP e chave de progresso
+│   │                              # ranking: ordenação por setor, selos e devs fora
+│   ├── views/                    # main-page, case-page, solution-page, ranking-page, 404
 │   ├── firebase.ts               # inicialização do app Firebase
 │   ├── router/index.ts           # rotas e recuperação de chunk quebrado
 │   └── base.css                  # paleta, fontes e utilidades acessíveis
 ├── .env.example                  # variáveis VITE_FIREBASE_* esperadas
-├── firestore.rules               # segurança do progresso
+├── firestore.rules               # segurança do progresso e do placar
 ├── index.html
 ├── vite.config.ts
 ├── LICENSE
@@ -438,8 +587,8 @@ São fictícios, mas o _vocabulário_ é real: nomes de tabela, coluna e o esque
 do sistema de produção, para o treino bater com o dia a dia.
 
 **Preciso criar conta?**
-Não. Dá para jogar inteiro como visitante. O login com Google existe só para guardar o progresso
-(1285 XP) entre máquinas.
+Não. Dá para jogar inteiro como visitante. O login com Google existe para guardar o progresso
+(1450 XP) entre máquinas e para te colocar no placar.
 
 **Posso escrever a consulta como eu quiser?**
 Pode. A validação compara o conjunto de linhas devolvido com o gabarito: aliases diferentes, ordem

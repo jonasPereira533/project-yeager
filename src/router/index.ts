@@ -18,6 +18,11 @@ const routes = [
     component: () => import("../views/solution-page.vue"),
   },
   {
+    path: "/ranking",
+    name: "ranking-page",
+    component: () => import("../views/ranking-page.vue"),
+  },
+  {
     path: "/:pathMatch(.*)*",
     name: "not-found",
     component: () => import("../views/not-found-page.vue"),

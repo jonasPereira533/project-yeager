@@ -18,8 +18,6 @@ service cloud.firestore {
         'vencimento-parcela-divergente',
         'caixa-travado-funcionario-inativo',
         'bug-troco-forma-pagamento',
-        'caixa-travado-funcionario-inativo',
-        'bug-troco-forma-pagamento',
         'rejeicao-535-frete',
         'sped-icms-cst60-entrada'
       ];
@@ -91,6 +89,67 @@ service cloud.firestore {
            );
     }
 
+
+    function validSectorIds() {
+      return ['Partner', 'Final', 'Prime', 'Implantação', 'Outro'];
+    }
+
+    function isValidObjectiveKey(key) {
+      return key is string
+        && key.split(':').size() == 2
+        && key.split(':')[0] in validCaseIds()
+        && key.split(':')[1] in validObjectiveIds();
+    }
+
+    function isValidObjectiveKeyList(field) {
+      return request.resource.data[field] is list
+        && request.resource.data[field].all(key, isValidObjectiveKey(key));
+    }
+
+    function isGrowingList(field) {
+      return !resource.data[field].exists()
+        || request.resource.data[field].hasAll(resource.data[field]);
+    }
+
+    function isValidSector() {
+      return !('sector' in request.resource.data)
+        || (request.resource.data.sector is string
+            && request.resource.data.sector in validSectorIds());
+    }
+
+    function hasOnlyLeaderboardFields() {
+      return request.resource.data.keys().hasOnly(
+        ['displayName', 'solved', 'hints', 'sector', 'completedAt', 'updatedAt']
+      );
+    }
+
+    function isValidLeaderboardFields() {
+      return request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 40
+        && isValidObjectiveKeyList('solved')
+        && isValidObjectiveKeyList('hints')
+        && isValidSector()
+        && request.resource.data.solved.size() > 0;
+    }
+
+    function setsCompletionNow() {
+      return !('completedAt' in request.resource.data)
+        || request.resource.data.completedAt == request.time;
+    }
+
+    function keepsCompletion() {
+      return !('completedAt' in resource.data)
+        ? setsCompletionNow()
+        : (!('completedAt' in request.resource.data)
+           || request.resource.data.completedAt == resource.data.completedAt);
+    }
+
+    function keepsSector() {
+      return !('sector' in resource.data)
+        || request.resource.data.sector == resource.data.sector;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow delete: if false;
@@ -112,6 +171,31 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().all(field,
              field == 'draftsByCase' || isMonotonic(field)
            );
+    }
+
+    match /leaderboard/{userId} {
+      allow read: if true;
+      allow delete: if false;
+
+      allow create: if isOwner(userId)
+        && hasOnlyLeaderboardFields()
+        && isValidLeaderboardFields()
+        && request.resource.data.updatedAt == request.time
+        && setsCompletionNow();
+
+      allow update: if isOwner(userId)
+        && hasOnlyLeaderboardFields()
+        && isValidLeaderboardFields()
+        && isGrowingList('solved')
+        && isGrowingList('hints')
+        && request.resource.data.updatedAt == request.time
+        && keepsCompletion()
+        && keepsSector();
+    }
+
+    match /devs/{userId} {
+      allow read: if true;
+      allow write: if false;
     }
 
     match /{document=**} {
