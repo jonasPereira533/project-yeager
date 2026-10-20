@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso005: Case = {
+export const caso202: Case = {
   id: "itens-fora-preco-tabela",
-  caseNumber: "005",
+  caseNumber: "202",
   title: "Itens Vendidos Fora do Preço de Tabela",
   level: "Intermediário",
   category: "Suporte Técnico — Vendas",

@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso007: Case = {
+export const caso301: Case = {
   id: "compradores-unicos-alto-valor",
-  caseNumber: "007",
+  caseNumber: "301",
   title: "Clientes de Compra Única Acima da Média",
   level: "Avançado",
   category: "Suporte Técnico — Marketing/Vendas",

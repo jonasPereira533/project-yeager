@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso010: Case = {
+export const caso304: Case = {
   id: "icms-desonerado-devolucao",
-  caseNumber: "010",
+  caseNumber: "304",
   title: "ICMS Desonerado Preso em Nota de Devolução",
   level: "Avançado",
   category: "Suporte Técnico — Fiscal",

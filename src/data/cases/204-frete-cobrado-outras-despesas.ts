@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso017: Case = {
+export const caso204: Case = {
     id: "frete-cobrado-outras-despesas",
-    caseNumber: "017",
+    caseNumber: "204",
     title: "Frete Cobrado como Outras Despesas",
     level: "Intermediário",
     category: "Suporte Técnico — Fiscal",
@@ -45,7 +45,7 @@ export const caso017: Case = {
             xp: 15,
             kind: "select",
             question:
-                "Liste os itens do movimento de saída nº 8421 da Filial 1, mostrando o valor de frete e o de outras despesas de cada item. Traga as colunas Sequencia (do item), Valor_Frete e Valor_Outro.",
+                "Liste os itens do movimento de saída nº 8421 da Filial 1, mostrando sequencia, valor de frete e outras despesas de cada item.",
             hint: "Os itens ficam em Movimento_Produto e só guardam o Ide do movimento. Junte com Movimento para filtrar por Filial__Codigo e Sequencia.",
             refSQL: `SELECT mp.Sequencia, mp.Valor_Frete, mp.Valor_Outro
                FROM Movimento_Produto mp
@@ -73,7 +73,7 @@ export const caso017: Case = {
             xp: 40,
             kind: "update",
             question:
-                "Agora que o valor está em Valor_Outro, finalize o ajuste: zere o Valor_Frete de todos os itens desse movimento (nº 8421, Filial 1) e altere o tipo de frete do movimento para 9 (Sem Frete). São dois comandos UPDATE, um em cada tabela. Nenhum outro movimento pode ser alterado.",
+                "Agora que o valor está em Valor_Outro, finalize o ajuste zere o valor do frete de todos os itens desse movimento (nº 8421, Filial 1) e altere o tipo de frete do movimento para 9 (Sem Frete).",
             hint: "Rode um UPDATE em Movimento_Produto (SET Valor_Frete = 0) e outro em Movimento (SET Frete_Tipo = 9), separados por ponto e vírgula. Os dois filtram pela Filial 1 e pela Sequencia 8421.",
             refSQL: `UPDATE Movimento SET Frete_Tipo = 9
                WHERE Filial__Codigo = 1 AND Sequencia = 8421;
