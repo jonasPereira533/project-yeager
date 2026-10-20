@@ -2,27 +2,28 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    function validCaseIds() {
-      return [
-        'clientes-bloqueados',
-        'estoque-abaixo-minimo',
-        'motivos-cancelamento',
-        'vendas-nao-efetivadas',
-        'itens-fora-preco-tabela',
-        'caixas-sem-fechamento',
-        'compradores-unicos-alto-valor',
-        'produtos-vendidos-prejuizo',
-        'ranking-vendedores-filial',
-        'icms-desonerado-devolucao',
-        'valor-final-divergente-ipi',
-        'vencimento-parcela-divergente',
-        'caixa-travado-funcionario-inativo',
-        'bug-troco-forma-pagamento',
-        'rejeicao-535-frete',
-        'sped-icms-cst60-entrada'
-      ];
-
-    }
+        function validCaseIds() {
+          return [
+            'clientes-bloqueados',
+            'estoque-abaixo-minimo',
+            'motivos-cancelamento',
+            'vendas-nao-efetivadas',
+            'itens-fora-preco-tabela',
+            'caixas-sem-fechamento',
+            'compradores-unicos-alto-valor',
+            'produtos-vendidos-prejuizo',
+            'ranking-vendedores-filial',
+            'icms-desonerado-devolucao',
+            'valor-final-divergente-ipi',
+            'vencimento-parcela-divergente',
+            'caixa-travado-funcionario-inativo',
+            'bug-troco-forma-pagamento',
+            'rejeicao-535-frete',
+            'sped-icms-cst60-entrada',
+            'frete-cobrado-outras-despesas',
+            'data-emissao-futura'
+          ];
+        }
 
     function validObjectiveIds() {
       return ['o1', 'o2', 'o3'];

@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso005: Case = {
+export const caso202: Case = {
   id: "itens-fora-preco-tabela",
-  caseNumber: "005",
+  caseNumber: "202",
   title: "Itens Vendidos Fora do Preço de Tabela",
   level: "Intermediário",
   category: "Suporte Técnico — Vendas",
@@ -40,7 +40,7 @@ export const caso005: Case = {
       id: "o1",
       xp: 15,
       question:
-        "Liste nome do produto, valor unitario e preço de vendas em que o valor unitário vendido é diferente do preço de tabela do produto.",
+        "Liste sequencia, nome do produto, valor unitario e preço de vendas em que o valor unitário vendido é diferente do preço de tabela do produto.",
       hint: "Junte Movimento_Produto com Produto pelo código; compare Valor_Unit com Preco1 usando <>.",
       refSQL:
         "SELECT mp.Sequencia, p.Nome, mp.Valor_Unit, p.Preco1 FROM Movimento_Produto mp JOIN Produto p ON p.Codigo = mp.Produto__Codigo WHERE mp.Valor_Unit <> p.Preco1;",

@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso011: Case = {
+export const caso305: Case = {
   id: "valor-final-divergente-ipi",
-  caseNumber: "011",
+  caseNumber: "305",
   title: "Valor Final Divergente após Zerar o IPI",
   level: "Avançado",
   category: "Suporte Técnico — Financeiro/Fiscal",

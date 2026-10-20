@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso016: Case = {
+export const caso309: Case = {
     id: "sped-icms-cst60-entrada",
-    caseNumber: "016",
+    caseNumber: "309",
     title: "SPED com ICMS Indevido no CST 60",
     level: "Avançado",
     category: "Suporte Técnico — Fiscal",
@@ -82,8 +82,8 @@ export const caso016: Case = {
             xp: 45,
             kind: "update",
             question:
-                "O contador pediu para zerar a base, a alíquota e o valor de ICMS, e também a base, a alíquota e o valor de FCP, dos itens que a consulta anterior retornou. Altere Base_ICMS, Valor_ICMS, ICMS_Perc, vBCFCP, pFCP e vFCP para 0 apenas nesses itens. Nenhum outro item pode ser alterado.",
-            hint: "O filtro do UPDATE depende de colunas de Movimento. Use WHERE Movimento__Ide IN (SELECT Ide FROM Movimento WHERE ...) e repita as condições do objetivo anterior.",
+                "O contador pediu para zerar a base, a alíquota e o valor de ICMS, e também a base, a alíquota e o valor de FCP, dos itens que a consulta anterior retornou.",
+            hint: "Para a resolução dos desafios utilizamos a sintaxe do SQLITE então o filtro do UPDATE depende de colunas de Movimento não aceitando o uso de JOINS. Use WHERE Movimento__Ide IN (SELECT Ide FROM Movimento WHERE ...) e repita as condições do objetivo anterior.",
             refSQL: `UPDATE Movimento_Produto
                SET Base_ICMS = 0, Valor_ICMS = 0, ICMS_Perc = 0,
                    vBCFCP = 0, pFCP = 0, vFCP = 0

@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso012: Case = {
+export const caso306: Case = {
   id: "vencimento-parcela-divergente",
-  caseNumber: "012",
+  caseNumber: "306",
   title: "Vencimento de Parcela Fora do Padrão",
   level: "Avançado",
   category: "Suporte Técnico — Financeiro",

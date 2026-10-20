@@ -1,8 +1,8 @@
 import type { Case } from "../../types/case";
 
-export const caso014: Case = {
+export const caso308: Case = {
   id: "bug-troco-forma-pagamento",
-  caseNumber: "014",
+  caseNumber: "308",
   title: "Bug do Troco Subtraindo o Total da Forma de Pagamento",
   level: "Avançado",
   category: "Suporte Técnico — Financeiro",
