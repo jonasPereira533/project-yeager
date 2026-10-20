@@ -37,31 +37,31 @@ function createRanking() {
   const activeSector = ref<Sector>(SECTORS[0]);
 
   const sources = computed<LeaderboardSource[]>(() =>
-    (docs.value ?? []).map((snapshot) => {
-      const data = snapshot.data() as LeaderboardDoc | undefined;
-      return {
-        uid: snapshot.id,
-        displayName: data?.displayName ?? "",
-        solved: data?.solved ?? [],
-        hints: data?.hints ?? [],
-        completedAtMillis: toMillis(data?.completedAt),
-        sector: data?.sector ?? null,
-      };
-    }),
+      (docs.value ?? []).map((entry) => {
+        const data = entry as LeaderboardDoc;
+        return {
+          uid: entry.id,
+          displayName: data.displayName ?? "",
+          solved: data.solved ?? [],
+          hints: data.hints ?? [],
+          completedAtMillis: toMillis(data.completedAt),
+          sector: data.sector ?? null,
+        };
+      }),
   );
 
   const staffUids = computed(
-    () => new Set((devDocs.value ?? []).map((snapshot) => snapshot.id)),
+      () => new Set((devDocs.value ?? []).map((entry) => entry.id)),
   );
 
   const rankable = computed(() => withoutStaff(sources.value, staffUids.value));
 
   const sectorList = computed(() =>
-    rankable.value.filter((source) => source.sector === activeSector.value),
+      rankable.value.filter((source) => source.sector === activeSector.value),
   );
 
   const entries = computed<RankEntry[]>(() =>
-    rankEntries(sectorList.value, CASES),
+      rankEntries(sectorList.value, CASES),
   );
 
   const firstUid = computed(() => firstFinisherUid(sectorList.value));
@@ -69,12 +69,12 @@ function createRanking() {
   const visibleEntries = computed(() => entries.value.slice(0, RANKING_LIMIT));
 
   const mySource = computed(
-    () =>
-      rankable.value.find((source) => source.uid === user.value?.uid) ?? null,
+      () =>
+          rankable.value.find((source) => source.uid === user.value?.uid) ?? null,
   );
 
   const myEntry = computed(
-    () => entries.value.find((entry) => entry.uid === user.value?.uid) ?? null,
+      () => entries.value.find((entry) => entry.uid === user.value?.uid) ?? null,
   );
 
   const pinnedEntry = computed(() => {
@@ -89,11 +89,11 @@ function createRanking() {
   });
 
   const needsSectorChoice = computed(
-    () => !!user.value && !!mySource.value && mySource.value.sector === null,
+      () => !!user.value && !!mySource.value && mySource.value.sector === null,
   );
 
   const unassignedCount = computed(
-    () => rankable.value.filter((source) => source.sector === null).length,
+      () => rankable.value.filter((source) => source.sector === null).length,
   );
 
   return {
