@@ -10,7 +10,6 @@ import {
   type RankEntry,
   type Sector,
 } from "../../utils/ranking";
-import { HINT_PENALTY } from "../../utils/xp";
 import { useLeaderboardEntry } from "../../composables/use-leaderboard-entry";
 import RankBadge from "./rank-badge.vue";
 import SectorPickerModal from "./sector-picker-modal.vue";

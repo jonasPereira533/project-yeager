@@ -2,11 +2,6 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ATENCAO: Firestore Rules NAO tem lambdas. Nao existe lista.all(x, ...),
-    // mapa.values().all(...) nem valor.exists(). Por isso tudo abaixo e
-    // expandido por caso. Ao criar um caso novo, adicione o id em validCaseIds()
-    // e rode `node gen-rules.mjs` (ou edite as clausulas por caso).
-
     function validCaseIds() {
       return [
         'clientes-bloqueados',
@@ -183,7 +178,6 @@ service cloud.firestore {
       return !(name in request.resource.data) || isValidDraftsMap(request.resource.data[name]);
     }
 
-    // Progresso so cresce: toda lista antiga precisa continuar contida na nova.
     function isMonotonic(field) {
       return !(field in resource.data)
         || isMonotonicMaps(resource.data[field], request.resource.data[field]);
