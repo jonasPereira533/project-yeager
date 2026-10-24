@@ -201,10 +201,14 @@ usado pela VR Tech (módulos de vendas, estoque, financeiro, fiscal e permissõe
 
 **Selos** — todos do setor aberto
 
-- `1º` `2º` `3º` para os três primeiros do seu setor.
-- `SEM NENHUMA DICA` para quem fechou os 16 chamados sem abrir uma única dica.
-- `PRIMEIRO A FECHAR A FILA` para o primeiro do setor a fechar tudo, com o horário carimbado pelo
-  servidor e congelado pelas regras, então não dá para tomar o selo depois.
+- Pódio dourado, prata e bronze (`public/firstPlace.svg`, `secondPlace.svg`, `thirdPlace.svg`) para os
+  três primeiros do setor.
+- `noHints.svg` para quem fechou os 16 chamados sem abrir uma única dica.
+- `completeAll.svg` para o primeiro do setor a fechar tudo, com o horário carimbado pelo servidor e
+  congelado pelas regras, então não dá para tomar o selo depois.
+
+Cada linha do placar mostra só o essencial: posição, nome, XP, chamados fechados e os selos. O ícone
+carrega o rótulo no `alt`, então leitor de tela continua ouvindo o nome do selo.
 
 **Experiência**
 

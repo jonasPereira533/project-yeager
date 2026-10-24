@@ -55,21 +55,11 @@ const objectivesCount = CASES.reduce(
   0,
 );
 
-const dateFormat = new Intl.DateTimeFormat("pt-BR", {
-  dateStyle: "short",
-  timeStyle: "short",
-});
-
-function formatWhen(millis: number | null): string {
-  if (millis === null || !Number.isFinite(millis)) return "—";
-  return dateFormat.format(new Date(millis));
-}
-
 function formatXp(xp: number): string {
   return xp.toLocaleString("pt-BR");
 }
 
-type TableItem =
+type RankLine =
   | { kind: "separator"; key: string }
   | {
       kind: "entry";
@@ -79,7 +69,7 @@ type TableItem =
       isMe: boolean;
     };
 
-function toEntryItem(entry: RankEntry): TableItem {
+function toEntryItem(entry: RankEntry): RankLine {
   return {
     kind: "entry",
     key: entry.uid,
@@ -89,8 +79,8 @@ function toEntryItem(entry: RankEntry): TableItem {
   };
 }
 
-const tableItems = computed<TableItem[]>(() => {
-  const items: TableItem[] = visibleEntries.value.map(toEntryItem);
+const tableItems = computed<RankLine[]>(() => {
+  const items: RankLine[] = visibleEntries.value.map(toEntryItem);
   const pinned = pinnedEntry.value;
   if (pinned) {
     items.push({ kind: "separator", key: "ranking-sua-posicao" });
@@ -107,11 +97,7 @@ const isEmpty = computed(() => entries.value.length === 0);
     <div class="page-head">
       <div :id="CAPTION_ID" class="eyebrow">Classificação geral</div>
       <h1>Placar da fila</h1>
-      <p class="lede">
-        Quem mais fechou chamados sobra no topo. O XP é o mesmo que aparece no
-        cabeçalho: cada objetivo resolvido vale o que vale aqui, e cada dica
-        aberta desconta {{ HINT_PENALTY }} XP.
-      </p>
+      <p class="lede">Confira os melhores guerreiros das OS por aqui.</p>
     </div>
 
     <div class="summary">
@@ -128,7 +114,7 @@ const isEmpty = computed(() => entries.value.length === 0);
       <span v-if="isStaff" class="note"
         >Seu progresso não entra no placar.</span
       >
-      <span v-else-if="myEntry">Você em {{ myEntry.rank }}º</span>
+      <span v-else-if="myEntry">Você está em {{ myEntry.rank }}º</span>
       <span v-else-if="user">Você ainda não aparece aqui</span>
     </div>
 
@@ -146,57 +132,40 @@ const isEmpty = computed(() => entries.value.length === 0);
 
     <p v-if="isEmpty" class="empty-note">
       Ninguém do setor {{ activeSector }} apareceu no placar ainda. Feche o
-      primeiro objetivo e o seu nome aparece aqui.
+      primeiro objetivo e o seu nome aparecerá aqui.
     </p>
 
-    <table v-else class="rank-table" :aria-labelledby="CAPTION_ID">
-      <thead>
-        <tr>
-          <th scope="col" class="col-pos">#</th>
-          <th scope="col">Agente</th>
-          <th scope="col" class="col-num">XP</th>
-          <th scope="col" class="col-num">Chamados</th>
-          <th scope="col">Selos</th>
-          <th scope="col" class="col-when">Fechou a fila</th>
-        </tr>
-      </thead>
-      <tbody>
-        <template v-for="item in tableItems" :key="item.key">
-          <tr v-if="item.kind === 'separator'" class="separator-row">
-            <td colspan="6">Sua posição no placar</td>
-          </tr>
-          <tr v-else :class="{ 'is-me': item.isMe }">
-            <td class="col-pos">{{ item.entry.rank }}</td>
-            <td class="col-name">
-              {{ item.entry.name }}
-              <span v-if="item.isMe" class="you">você</span>
-            </td>
-            <td class="col-num">{{ formatXp(item.entry.xp) }}</td>
-            <td class="col-num">
-              {{ item.entry.casesSolved }}/{{ CASES.length }}
-            </td>
-            <td class="col-badges">
-              <span class="badge-list">
-                <span v-if="item.badges.length === 0" class="no-badge">—</span>
-                <RankBadge
-                  v-for="badge in item.badges"
-                  :key="badge"
-                  :badge="badge"
-                />
-              </span>
-            </td>
-            <td class="col-when">
-              {{ formatWhen(item.entry.completedAtMillis) }}
-            </td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
+    <ul v-else class="rank-list" role="list" :aria-labelledby="CAPTION_ID">
+      <template v-for="item in tableItems" :key="item.key">
+        <li v-if="item.kind === 'separator'" class="separator">
+          Sua posição no placar
+        </li>
+        <li v-else class="rank-line" :class="{ 'is-me': item.isMe }">
+          <span class="pos">{{ item.entry.rank }}</span>
+          <span class="name">
+            {{ item.entry.name }}
+            <span v-if="item.isMe" class="you">você</span>
+          </span>
+          <span class="xp">{{ formatXp(item.entry.xp) }} XP</span>
+          <span class="cases">
+            {{ item.entry.casesSolved }}/{{ CASES.length }}
+          </span>
+          <span class="badges">
+            <RankBadge
+              v-for="badge in item.badges"
+              :key="badge"
+              :badge="badge"
+            />
+          </span>
+        </li>
+      </template>
+    </ul>
 
     <div v-if="!user" class="notice">
       <p class="notice-text">
-        Todo mundo pode ver este placar, mas só quem entrou com uma conta entra
-        nele. Visitantes jogam offline e o progresso fica no próprio navegador.
+        Todo mundo pode ver este placar, mas só quem entrou com uma conta
+        aparece nele. Visitantes jogam offline e o progresso fica no próprio
+        navegador.
       </p>
       <button
         type="button"
@@ -210,9 +179,8 @@ const isEmpty = computed(() => entries.value.length === 0);
     </div>
 
     <p class="footnote">
-      Os selos valem para o setor aberto: medalhas e primeiro a fechar a fila
-      são comparados só entre quem é do mesmo setor. O carimbo é do servidor,
-      então não dá para alterá-lo depois.
+      Ranking e medalhas são separados entre os setores, se dedique chegar ao
+      topo do seu.
     </p>
 
     <SectorPickerModal
@@ -288,42 +256,58 @@ const isEmpty = computed(() => entries.value.length === 0);
   color: var(--amber);
 }
 
-.rank-table {
-  width: 100%;
-  border-collapse: collapse;
+.rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.85rem;
 }
-.rank-table th {
-  text-align: left;
-  color: var(--amber);
-  padding: 0.5rem 0.7rem;
-  border-bottom: 0.063rem solid var(--rule);
-  font-weight: 500;
-}
-.rank-table td {
-  padding: 0.5rem 0.7rem;
+.rank-line {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.55rem 0.2rem;
   border-bottom: 0.063rem dashed var(--rule);
-  color: var(--ink);
 }
-.rank-table th,
-.rank-table td {
-  vertical-align: middle;
+.rank-line.is-me {
+  background: var(--surface);
+  border-left: 0.125rem solid var(--amber);
 }
-.col-pos {
-  width: 3rem;
+.pos {
+  flex: none;
+  width: 1.9rem;
+  text-align: right;
   color: var(--ink-muted);
 }
-.rank-table th.col-num,
-.rank-table td.col-num {
+.name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.xp {
+  flex: none;
+  min-width: 6.5rem;
   text-align: right;
 }
-.col-when {
+.cases {
+  flex: none;
+  min-width: 3.8rem;
+  text-align: right;
   color: var(--ink-muted);
-  white-space: nowrap;
 }
-.col-name {
-  font-weight: 500;
+.badges {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-width: 7rem;
+  padding-right: 0.5rem;
 }
 .you {
   font-size: 0.68rem;
@@ -332,24 +316,12 @@ const isEmpty = computed(() => entries.value.length === 0);
   color: var(--amber);
   margin-left: 0.4rem;
 }
-.badge-list {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-}
-.no-badge {
-  color: var(--ink-muted);
-}
-.rank-table tr.is-me td {
-  background: rgba(232, 163, 61, 0.08);
-}
-.separator-row td {
+.separator {
   color: var(--amber);
   font-size: 0.72rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  padding-top: 1.2rem;
+  padding: 1.2rem 0.2rem 0.4rem;
   border-bottom: 0.063rem solid var(--rule);
 }
 
@@ -405,20 +377,25 @@ const isEmpty = computed(() => entries.value.length === 0);
   margin-top: 1.8rem;
   font-size: 0.8rem;
   color: var(--ink-muted);
-  max-width: 60ch;
+  max-width: 70ch;
 }
 
 @media (max-width: 640px) {
-  .col-when,
-  .rank-table th.col-when {
-    display: none;
-  }
-  .rank-table {
+  .rank-list {
     font-size: 0.78rem;
   }
-  .rank-table td,
-  .rank-table th {
-    padding: 0.45rem 0.4rem;
+  .rank-line {
+    flex-wrap: wrap;
+    gap: 0.35rem 0.7rem;
+    padding: 0.5rem 0.2rem;
+  }
+  .name {
+    flex: 1 1 6rem;
+  }
+  .badges {
+    flex-basis: 100%;
+    min-width: 0;
+    justify-content: flex-start;
   }
 }
 </style>
