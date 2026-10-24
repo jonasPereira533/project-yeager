@@ -19,7 +19,7 @@ const CAPTION_ID = "ranking-caption";
 
 const user = useCurrentUser();
 const { loginWithGoogle, pending } = useAuth();
-const { chooseSector } = useLeaderboardEntry();
+const { chooseSector, publishError } = useLeaderboardEntry();
 const {
   sectors,
   activeSector,
@@ -132,6 +132,10 @@ const isEmpty = computed(() => entries.value.length === 0);
       <span v-else-if="user">Você ainda não aparece aqui</span>
     </div>
 
+    <p v-if="publishError" class="empty-note publish-error">
+      {{ publishError }}
+    </p>
+
     <p v-if="unassignedCount > 0" class="empty-note">
       {{ unassignedCount }}
       {{ unassignedCount === 1 ? "jogador ainda não" : "jogadores ainda não" }}
@@ -172,12 +176,14 @@ const isEmpty = computed(() => entries.value.length === 0);
               {{ item.entry.casesSolved }}/{{ CASES.length }}
             </td>
             <td class="col-badges">
-              <span v-if="item.badges.length === 0" class="no-badge">—</span>
-              <RankBadge
-                v-for="badge in item.badges"
-                :key="badge"
-                :badge="badge"
-              />
+              <span class="badge-list">
+                <span v-if="item.badges.length === 0" class="no-badge">—</span>
+                <RankBadge
+                  v-for="badge in item.badges"
+                  :key="badge"
+                  :badge="badge"
+                />
+              </span>
             </td>
             <td class="col-when">
               {{ formatWhen(item.entry.completedAtMillis) }}
@@ -300,11 +306,16 @@ const isEmpty = computed(() => entries.value.length === 0);
   border-bottom: 0.063rem dashed var(--rule);
   color: var(--ink);
 }
+.rank-table th,
+.rank-table td {
+  vertical-align: middle;
+}
 .col-pos {
   width: 3rem;
   color: var(--ink-muted);
 }
-.col-num {
+.rank-table th.col-num,
+.rank-table td.col-num {
   text-align: right;
 }
 .col-when {
@@ -321,9 +332,10 @@ const isEmpty = computed(() => entries.value.length === 0);
   color: var(--amber);
   margin-left: 0.4rem;
 }
-.col-badges {
+.badge-list {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.35rem;
 }
 .no-badge {
@@ -383,6 +395,11 @@ const isEmpty = computed(() => entries.value.length === 0);
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.82rem;
   color: var(--ink-muted);
+}
+.publish-error {
+  color: var(--stamp-red);
+  border-left: 0.125rem solid var(--stamp-red);
+  padding-left: 0.7rem;
 }
 .footnote {
   margin-top: 1.8rem;

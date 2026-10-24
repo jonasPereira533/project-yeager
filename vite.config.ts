@@ -32,5 +32,10 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.spec.ts"],
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "src/**/*.rules.spec.ts",
+    ],
   },
 });

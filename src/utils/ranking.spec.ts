@@ -4,6 +4,7 @@ import { CASES } from "../data/cases";
 import {
   badgesFor,
   buildRankEntry,
+  collectStaffUids,
   firstFinisherUid,
   firstName,
   rankEntries,
@@ -399,6 +400,34 @@ describe("devs fora do placar", () => {
   it("sem lista de devs, ninguem sai", () => {
     const board = [source({ uid: "p1" })];
     expect(withoutStaff(board, new Set())).toHaveLength(1);
+  });
+});
+
+describe("quem fica de fora em cada ambiente", () => {
+  it("em producao a lista de devs esconde", () => {
+    const uids = collectStaffUids(["d1", "d2"], "hidden");
+    expect([...uids]).toEqual(["d1", "d2"]);
+  });
+
+  it("com a visibilidade local ligada, ninguem esconde", () => {
+    const uids = collectStaffUids(["d1"], "visible");
+    expect(uids.size).toBe(0);
+  });
+
+  it("com a visibilidade ligada e a colecao vazia, continua vazio", () => {
+    expect(collectStaffUids([], "visible").size).toBe(0);
+    expect(collectStaffUids([], "hidden").size).toBe(0);
+  });
+
+  it("a visibilidade local nao muda quem esta no placar alem do dev", () => {
+    const board = [
+      source({ uid: "d1", solved: ALL_KEYS }),
+      source({ uid: "p1", solved: ["c1:o1"] }),
+    ];
+    const local = withoutStaff(board, collectStaffUids(["d1"], "visible"));
+    expect(local.map((s) => s.uid)).toEqual(["d1", "p1"]);
+    const producao = withoutStaff(board, collectStaffUids(["d1"], "hidden"));
+    expect(producao.map((s) => s.uid)).toEqual(["p1"]);
   });
 });
 

@@ -14,6 +14,16 @@ export default tseslint.config(
   ...pluginVue.configs["flat/essential"],
 
   {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.es2021,
+      },
+    },
+  },
+
+  {
     files: ["**/*.{ts,vue}"],
     languageOptions: {
       globals: {

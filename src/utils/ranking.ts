@@ -68,11 +68,20 @@ export function firstName(displayName: string | null | undefined): string {
   return normalized.split(" ")[0].slice(0, MAX_DISPLAY_NAME_LENGTH);
 }
 
+export type StaffVisibility = "hidden" | "visible";
+
 export function withoutStaff(
   sources: readonly LeaderboardSource[],
   staffUids: ReadonlySet<string>,
 ): LeaderboardSource[] {
   return sources.filter((source) => !staffUids.has(source.uid));
+}
+
+export function collectStaffUids(
+  uids: readonly string[],
+  visibility: StaffVisibility,
+): Set<string> {
+  return visibility === "visible" ? new Set() : new Set(uids);
 }
 
 export function buildRankEntry(

@@ -60,10 +60,16 @@ describe("placar publico x firestore.rules", () => {
     );
   });
 
-  it("o separador da chave e o mesmo das regras", () => {
-    expect(rulesSource).toContain(
-      `key.split('${PROGRESS_KEY_SEPARATOR}').size() == 2`,
-    );
+  it("a chave que o cliente monta bate com a allowlist das regras", () => {
+    const allowed = new Set(quotedListAfter(rulesSource, "validObjectiveKeys"));
+
+    for (const caseItem of CASES) {
+      for (const objective of caseItem.objectives) {
+        const key = progressKey(caseItem.id, objective.id);
+        expect(key.split(PROGRESS_KEY_SEPARATOR)).toHaveLength(2);
+        expect(allowed.has(key)).toBe(true);
+      }
+    }
   });
 
   it("toda chave que o cliente monta passa na validacao das regras", () => {

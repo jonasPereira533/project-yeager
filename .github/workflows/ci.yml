@@ -42,6 +42,20 @@ jobs:
       - name: Test
         run: npm run test
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Cache Firestore emulator
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firestore-emulator-${{ hashFiles('package-lock.json') }}
+
+      - name: Test Firestore rules
+        run: npm run test:rules
+
       - name: Build
         run: npm run build
         env:

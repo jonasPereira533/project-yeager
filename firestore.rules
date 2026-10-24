@@ -227,6 +227,7 @@ service cloud.firestore {
 
     function isValidSector() {
       return !('sector' in request.resource.data)
+        || request.resource.data.sector == null
         || (request.resource.data.sector is string
             && request.resource.data.sector in validSectorIds());
     }
@@ -255,13 +256,15 @@ service cloud.firestore {
     function keepsCompletion() {
       return !('completedAt' in resource.data)
         ? setsCompletionNow()
-        : (!('completedAt' in request.resource.data)
-           || request.resource.data.completedAt == resource.data.completedAt);
+        : (('completedAt' in request.resource.data)
+           && request.resource.data.completedAt == resource.data.completedAt);
     }
 
     function keepsSector() {
       return !('sector' in resource.data)
-        || request.resource.data.sector == resource.data.sector;
+        || resource.data.sector == null
+        || (('sector' in request.resource.data)
+            && request.resource.data.sector == resource.data.sector);
     }
 
     match /users/{userId} {

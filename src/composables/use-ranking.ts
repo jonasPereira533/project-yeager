@@ -4,12 +4,14 @@ import { useCollection, useCurrentUser, useFirestore } from "vuefire";
 import { CASES } from "../data/cases";
 import {
   SECTORS,
+  collectStaffUids,
   firstFinisherUid,
   rankEntries,
   withoutStaff,
   type LeaderboardSource,
   type RankEntry,
   type Sector,
+  type StaffVisibility,
 } from "../utils/ranking";
 
 export const RANKING_LIMIT = 20;
@@ -26,6 +28,11 @@ function toMillis(value: LeaderboardDoc["completedAt"]): number | null {
   if (!value || typeof value.toMillis !== "function") return null;
   return value.toMillis();
 }
+
+const SHOW_STAFF =
+  import.meta.env.DEV && import.meta.env.VITE_RANKING_SHOW_STAFF === "1";
+
+const STAFF_VISIBILITY: StaffVisibility = SHOW_STAFF ? "visible" : "hidden";
 
 function createRanking() {
   const db = useFirestore();
@@ -50,8 +57,11 @@ function createRanking() {
       }),
   );
 
-  const staffUids = computed(
-      () => new Set((devDocs.value ?? []).map((entry) => entry.id)),
+  const staffUids = computed(() =>
+    collectStaffUids(
+      (devDocs.value ?? []).map((entry) => entry.id),
+      STAFF_VISIBILITY,
+    ),
   );
 
   const rankable = computed(() => withoutStaff(sources.value, staffUids.value));

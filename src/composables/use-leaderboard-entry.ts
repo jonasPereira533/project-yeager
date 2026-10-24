@@ -1,5 +1,11 @@
-import { computed, effectScope, watch } from "vue";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { computed, effectScope, ref, watch } from "vue";
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+  type DocumentReference,
+} from "firebase/firestore";
 import { useCurrentUser, useFirestore } from "vuefire";
 import { CASES } from "../data/cases";
 import { useProgress } from "./use-progress";
@@ -18,6 +24,34 @@ const SYNC_DEBOUNCE_MS = 1500;
 type LeaderboardWrite = Partial<
   Record<(typeof LEADERBOARD_FIELDS)[number], unknown>
 >;
+
+interface ServerLine {
+  solved: string[];
+  hints: string[];
+  sector: string | null;
+  completedAt: unknown;
+}
+
+function describe(
+  server: ServerLine | null,
+  payload: LeaderboardWrite,
+): Record<string, unknown> {
+  return {
+    servidor: server
+      ? {
+          solved: server.solved.length,
+          hints: server.hints.length,
+          sector: server.sector,
+          carimbado: Boolean(server.completedAt),
+        }
+      : null,
+    enviado: {
+      solved: (payload.solved as string[]).length,
+      hints: (payload.hints as string[]).length,
+      setor: payload.sector ?? null,
+    },
+  };
+}
 
 function createLeaderboardEntry() {
   const db = useFirestore();
@@ -57,6 +91,8 @@ function createLeaderboardEntry() {
   let inFlight = false;
   let dirty = false;
 
+  const publishError = ref<string | null>(null);
+
   let pendingStamp = false;
   let stampedThisSession = false;
 
@@ -76,6 +112,42 @@ function createLeaderboardEntry() {
     return payload;
   }
 
+  function union(a: readonly string[], b: readonly string[]): string[] {
+    return [...new Set([...a, ...b])];
+  }
+
+  async function readServerLine(
+    ref: DocumentReference,
+  ): Promise<ServerLine | null> {
+    try {
+      const snapshot = await getDoc(ref);
+      if (!snapshot.exists()) return null;
+      const data = snapshot.data();
+      return {
+        solved: Array.isArray(data?.solved) ? data.solved : [],
+        hints: Array.isArray(data?.hints) ? data.hints : [],
+        sector: typeof data?.sector === "string" ? data.sector : null,
+        completedAt: data?.completedAt ?? null,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  function payloadFor(
+    displayName: string | null,
+    server: ServerLine | null,
+  ): LeaderboardWrite | null {
+    const payload = basePayload(displayName);
+    if (!payload) return null;
+
+    payload.solved = union(server?.solved ?? [], payload.solved as string[]);
+    payload.hints = union(server?.hints ?? [], payload.hints as string[]);
+
+    if (server?.sector) payload.sector = server.sector;
+    return payload;
+  }
+
   async function sync() {
     const currentUser = user.value;
     if (!currentUser) return;
@@ -85,23 +157,43 @@ function createLeaderboardEntry() {
       return;
     }
 
-    const payload = basePayload(currentUser.displayName);
+    const ref = doc(db, "leaderboard", currentUser.uid);
+    const server = await readServerLine(ref);
+    const payload = payloadFor(currentUser.displayName, server);
     if (!payload) return;
 
-    const stamping = pendingStamp;
+    let stamping = pendingStamp;
+
+    if (stamping && server?.completedAt) {
+      pendingStamp = false;
+      stamping = false;
+    }
+
     if (stamping) payload.completedAt = serverTimestamp();
 
     inFlight = true;
     try {
-      await setDoc(doc(db, "leaderboard", currentUser.uid), payload, {
-        merge: true,
-      });
+      await setDoc(ref, payload, { merge: true });
+      publishError.value = null;
       if (stamping) {
         pendingStamp = false;
         stampedThisSession = true;
       }
     } catch (error) {
-      console.error("Falha ao publicar no placar:", error);
+      publishError.value =
+        "Nao consegui publicar sua linha no placar. As regras do Firestore podem estar desatualizadas no ar.";
+      console.error(
+        "Falha ao publicar no placar:",
+        error,
+        describe(server, payload),
+      );
+      if (stamping && server?.completedAt) {
+        pendingStamp = false;
+        const retry = payloadFor(currentUser.displayName, server);
+        if (retry) {
+          await setDoc(ref, retry, { merge: true }).catch(() => undefined);
+        }
+      }
     } finally {
       inFlight = false;
       if (dirty) {
@@ -115,19 +207,34 @@ function createLeaderboardEntry() {
     const currentUser = user.value;
     if (!currentUser || inFlight) return false;
 
-    const payload = basePayload(currentUser.displayName);
+    const ref = doc(db, "leaderboard", currentUser.uid);
+    const server = await readServerLine(ref);
+
+    if (server?.sector && server.sector !== sector) {
+      console.error(
+        `O setor ja foi escolhido (${server.sector}) e as regras nao deixam trocar.`,
+      );
+      return false;
+    }
+
+    const payload = payloadFor(currentUser.displayName, server);
     if (!payload) return false;
     payload.sector = sector;
 
     inFlight = true;
     try {
-      await setDoc(doc(db, "leaderboard", currentUser.uid), payload, {
-        merge: true,
-      });
+      await setDoc(ref, payload, { merge: true });
+      publishError.value = null;
       chosenSector = sector;
       return true;
     } catch (error) {
-      console.error("Falha ao escolher o setor:", error);
+      publishError.value =
+        "Nao consegui salvar seu setor. As regras do Firestore podem estar desatualizadas no ar.";
+      console.error(
+        "Falha ao escolher o setor:",
+        error,
+        describe(server, payload),
+      );
       return false;
     } finally {
       inFlight = false;
@@ -162,7 +269,7 @@ function createLeaderboardEntry() {
     },
   );
 
-  return { sync, chooseSector, archiveComplete };
+  return { sync, chooseSector, archiveComplete, publishError };
 }
 
 type LeaderboardEntryApi = ReturnType<typeof createLeaderboardEntry>;

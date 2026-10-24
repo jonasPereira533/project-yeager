@@ -1,5 +1,6 @@
 {
   "projects": {
+    "default": "yeager-396bf",
     "production": "yeager-396bf"
   },
   "targets": {},
