@@ -2,31 +2,90 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-        function validCaseIds() {
-          return [
-            'clientes-bloqueados',
-            'estoque-abaixo-minimo',
-            'motivos-cancelamento',
-            'vendas-nao-efetivadas',
-            'itens-fora-preco-tabela',
-            'caixas-sem-fechamento',
-            'compradores-unicos-alto-valor',
-            'produtos-vendidos-prejuizo',
-            'ranking-vendedores-filial',
-            'icms-desonerado-devolucao',
-            'valor-final-divergente-ipi',
-            'vencimento-parcela-divergente',
-            'caixa-travado-funcionario-inativo',
-            'bug-troco-forma-pagamento',
-            'rejeicao-535-frete',
-            'sped-icms-cst60-entrada',
-            'frete-cobrado-outras-despesas',
-            'data-emissao-futura'
-          ];
-        }
+    function validCaseIds() {
+      return [
+        'clientes-bloqueados',
+        'estoque-abaixo-minimo',
+        'motivos-cancelamento',
+        'vendas-nao-efetivadas',
+        'itens-fora-preco-tabela',
+        'caixas-sem-fechamento',
+        'compradores-unicos-alto-valor',
+        'produtos-vendidos-prejuizo',
+        'ranking-vendedores-filial',
+        'icms-desonerado-devolucao',
+        'valor-final-divergente-ipi',
+        'vencimento-parcela-divergente',
+        'caixa-travado-funcionario-inativo',
+        'bug-troco-forma-pagamento',
+        'rejeicao-535-frete',
+        'sped-icms-cst60-entrada',
+        'frete-cobrado-outras-despesas',
+        'data-emissao-futura'
+      ];
+    }
 
     function validObjectiveIds() {
       return ['o1', 'o2', 'o3'];
+    }
+
+    function validObjectiveKeys() {
+      return [
+        'clientes-bloqueados:o1',
+        'clientes-bloqueados:o2',
+        'clientes-bloqueados:o3',
+        'estoque-abaixo-minimo:o1',
+        'estoque-abaixo-minimo:o2',
+        'estoque-abaixo-minimo:o3',
+        'motivos-cancelamento:o1',
+        'motivos-cancelamento:o2',
+        'motivos-cancelamento:o3',
+        'vendas-nao-efetivadas:o1',
+        'vendas-nao-efetivadas:o2',
+        'vendas-nao-efetivadas:o3',
+        'itens-fora-preco-tabela:o1',
+        'itens-fora-preco-tabela:o2',
+        'itens-fora-preco-tabela:o3',
+        'caixas-sem-fechamento:o1',
+        'caixas-sem-fechamento:o2',
+        'caixas-sem-fechamento:o3',
+        'compradores-unicos-alto-valor:o1',
+        'compradores-unicos-alto-valor:o2',
+        'compradores-unicos-alto-valor:o3',
+        'produtos-vendidos-prejuizo:o1',
+        'produtos-vendidos-prejuizo:o2',
+        'produtos-vendidos-prejuizo:o3',
+        'ranking-vendedores-filial:o1',
+        'ranking-vendedores-filial:o2',
+        'ranking-vendedores-filial:o3',
+        'icms-desonerado-devolucao:o1',
+        'icms-desonerado-devolucao:o2',
+        'icms-desonerado-devolucao:o3',
+        'valor-final-divergente-ipi:o1',
+        'valor-final-divergente-ipi:o2',
+        'valor-final-divergente-ipi:o3',
+        'vencimento-parcela-divergente:o1',
+        'vencimento-parcela-divergente:o2',
+        'vencimento-parcela-divergente:o3',
+        'caixa-travado-funcionario-inativo:o1',
+        'caixa-travado-funcionario-inativo:o2',
+        'caixa-travado-funcionario-inativo:o3',
+        'bug-troco-forma-pagamento:o1',
+        'bug-troco-forma-pagamento:o2',
+        'bug-troco-forma-pagamento:o3',
+        'rejeicao-535-frete:o1',
+        'rejeicao-535-frete:o2',
+        'rejeicao-535-frete:o3',
+        'sped-icms-cst60-entrada:o1',
+        'sped-icms-cst60-entrada:o2',
+        'sped-icms-cst60-entrada:o3',
+        'frete-cobrado-outras-despesas:o1',
+        'frete-cobrado-outras-despesas:o2',
+        'frete-cobrado-outras-despesas:o3',
+        'data-emissao-futura:o1',
+        'data-emissao-futura:o2',
+        'data-emissao-futura:o3'
+      ];
     }
 
     function isOwner(userId) {
@@ -43,34 +102,76 @@ service cloud.firestore {
       );
     }
 
+    function isValidObjectiveList(list) {
+      return list is list
+        && list.size() <= validObjectiveIds().size()
+        && list.hasOnly(validObjectiveIds());
+    }
+
     function isValidProgressMap(data) {
       return data is map
         && data.keys().hasOnly(validCaseIds())
-        && data.values().all(objectiveList,
-             objectiveList is list
-             && objectiveList.size() <= validObjectiveIds().size()
-             && objectiveList.all(objectiveId, objectiveId in validObjectiveIds())
-           );
+        && (!('clientes-bloqueados' in data) || isValidObjectiveList(data['clientes-bloqueados']))
+        && (!('estoque-abaixo-minimo' in data) || isValidObjectiveList(data['estoque-abaixo-minimo']))
+        && (!('motivos-cancelamento' in data) || isValidObjectiveList(data['motivos-cancelamento']))
+        && (!('vendas-nao-efetivadas' in data) || isValidObjectiveList(data['vendas-nao-efetivadas']))
+        && (!('itens-fora-preco-tabela' in data) || isValidObjectiveList(data['itens-fora-preco-tabela']))
+        && (!('caixas-sem-fechamento' in data) || isValidObjectiveList(data['caixas-sem-fechamento']))
+        && (!('compradores-unicos-alto-valor' in data) || isValidObjectiveList(data['compradores-unicos-alto-valor']))
+        && (!('produtos-vendidos-prejuizo' in data) || isValidObjectiveList(data['produtos-vendidos-prejuizo']))
+        && (!('ranking-vendedores-filial' in data) || isValidObjectiveList(data['ranking-vendedores-filial']))
+        && (!('icms-desonerado-devolucao' in data) || isValidObjectiveList(data['icms-desonerado-devolucao']))
+        && (!('valor-final-divergente-ipi' in data) || isValidObjectiveList(data['valor-final-divergente-ipi']))
+        && (!('vencimento-parcela-divergente' in data) || isValidObjectiveList(data['vencimento-parcela-divergente']))
+        && (!('caixa-travado-funcionario-inativo' in data) || isValidObjectiveList(data['caixa-travado-funcionario-inativo']))
+        && (!('bug-troco-forma-pagamento' in data) || isValidObjectiveList(data['bug-troco-forma-pagamento']))
+        && (!('rejeicao-535-frete' in data) || isValidObjectiveList(data['rejeicao-535-frete']))
+        && (!('sped-icms-cst60-entrada' in data) || isValidObjectiveList(data['sped-icms-cst60-entrada']))
+        && (!('frete-cobrado-outras-despesas' in data) || isValidObjectiveList(data['frete-cobrado-outras-despesas']))
+        && (!('data-emissao-futura' in data) || isValidObjectiveList(data['data-emissao-futura']));
     }
 
     function isValidProgressField(name) {
       return !(name in request.resource.data) || isValidProgressMap(request.resource.data[name]);
     }
 
+    function isValidQueries(queries) {
+      return queries is map
+        && queries.keys().hasOnly(validObjectiveIds())
+        && (!('o1' in queries) || (queries['o1'] is string && queries['o1'].size() <= maxDraftSqlLength()))
+        && (!('o2' in queries) || (queries['o2'] is string && queries['o2'].size() <= maxDraftSqlLength()))
+        && (!('o3' in queries) || (queries['o3'] is string && queries['o3'].size() <= maxDraftSqlLength()));
+    }
+
+    function isValidDraft(draft) {
+      return draft is map
+        && draft.keys().hasOnly(['activeObjectiveId', 'queries'])
+        && (!('activeObjectiveId' in draft)
+            || draft.activeObjectiveId in validObjectiveIds())
+        && (!('queries' in draft) || isValidQueries(draft.queries));
+    }
+
     function isValidDraftsMap(data) {
       return data is map
         && data.keys().hasOnly(validCaseIds())
-        && data.values().all(caseDraft,
-             caseDraft is map
-             && caseDraft.keys().hasOnly(['activeObjectiveId', 'queries'])
-             && (!('activeObjectiveId' in caseDraft)
-                 || caseDraft.activeObjectiveId in validObjectiveIds())
-             && (!('queries' in caseDraft)
-                 || (caseDraft.queries is map
-                     && caseDraft.queries.keys().hasOnly(validObjectiveIds())
-                     && caseDraft.queries.values().all(sql,
-                          sql is string && sql.size() <= maxDraftSqlLength())))
-           );
+        && (!('clientes-bloqueados' in data) || isValidDraft(data['clientes-bloqueados']))
+        && (!('estoque-abaixo-minimo' in data) || isValidDraft(data['estoque-abaixo-minimo']))
+        && (!('motivos-cancelamento' in data) || isValidDraft(data['motivos-cancelamento']))
+        && (!('vendas-nao-efetivadas' in data) || isValidDraft(data['vendas-nao-efetivadas']))
+        && (!('itens-fora-preco-tabela' in data) || isValidDraft(data['itens-fora-preco-tabela']))
+        && (!('caixas-sem-fechamento' in data) || isValidDraft(data['caixas-sem-fechamento']))
+        && (!('compradores-unicos-alto-valor' in data) || isValidDraft(data['compradores-unicos-alto-valor']))
+        && (!('produtos-vendidos-prejuizo' in data) || isValidDraft(data['produtos-vendidos-prejuizo']))
+        && (!('ranking-vendedores-filial' in data) || isValidDraft(data['ranking-vendedores-filial']))
+        && (!('icms-desonerado-devolucao' in data) || isValidDraft(data['icms-desonerado-devolucao']))
+        && (!('valor-final-divergente-ipi' in data) || isValidDraft(data['valor-final-divergente-ipi']))
+        && (!('vencimento-parcela-divergente' in data) || isValidDraft(data['vencimento-parcela-divergente']))
+        && (!('caixa-travado-funcionario-inativo' in data) || isValidDraft(data['caixa-travado-funcionario-inativo']))
+        && (!('bug-troco-forma-pagamento' in data) || isValidDraft(data['bug-troco-forma-pagamento']))
+        && (!('rejeicao-535-frete' in data) || isValidDraft(data['rejeicao-535-frete']))
+        && (!('sped-icms-cst60-entrada' in data) || isValidDraft(data['sped-icms-cst60-entrada']))
+        && (!('frete-cobrado-outras-despesas' in data) || isValidDraft(data['frete-cobrado-outras-despesas']))
+        && (!('data-emissao-futura' in data) || isValidDraft(data['data-emissao-futura']));
     }
 
     function isValidDraftsField(name) {
@@ -78,16 +179,86 @@ service cloud.firestore {
     }
 
     function isMonotonic(field) {
-      return !resource.data[field].exists()
-        || (
-             request.resource.data[field].keys().hasAll(resource.data[field].keys())
-             && request.resource.data[field].keys().all(caseId,
-                  !resource.data[field].keys().hasAny([caseId])
-                  || resource.data[field][caseId].hasAll(
-                       resource.data[field][caseId]
-                     )
-               )
-           );
+      return !(field in resource.data)
+        || isMonotonicMaps(resource.data[field], request.resource.data[field]);
+    }
+
+    function isMonotonicMaps(oldMap, newMap) {
+      return newMap.keys().hasAll(oldMap.keys())
+             && (!('clientes-bloqueados' in oldMap) || (('clientes-bloqueados' in newMap) && newMap['clientes-bloqueados'].hasAll(oldMap['clientes-bloqueados'])))
+             && (!('estoque-abaixo-minimo' in oldMap) || (('estoque-abaixo-minimo' in newMap) && newMap['estoque-abaixo-minimo'].hasAll(oldMap['estoque-abaixo-minimo'])))
+             && (!('motivos-cancelamento' in oldMap) || (('motivos-cancelamento' in newMap) && newMap['motivos-cancelamento'].hasAll(oldMap['motivos-cancelamento'])))
+             && (!('vendas-nao-efetivadas' in oldMap) || (('vendas-nao-efetivadas' in newMap) && newMap['vendas-nao-efetivadas'].hasAll(oldMap['vendas-nao-efetivadas'])))
+             && (!('itens-fora-preco-tabela' in oldMap) || (('itens-fora-preco-tabela' in newMap) && newMap['itens-fora-preco-tabela'].hasAll(oldMap['itens-fora-preco-tabela'])))
+             && (!('caixas-sem-fechamento' in oldMap) || (('caixas-sem-fechamento' in newMap) && newMap['caixas-sem-fechamento'].hasAll(oldMap['caixas-sem-fechamento'])))
+             && (!('compradores-unicos-alto-valor' in oldMap) || (('compradores-unicos-alto-valor' in newMap) && newMap['compradores-unicos-alto-valor'].hasAll(oldMap['compradores-unicos-alto-valor'])))
+             && (!('produtos-vendidos-prejuizo' in oldMap) || (('produtos-vendidos-prejuizo' in newMap) && newMap['produtos-vendidos-prejuizo'].hasAll(oldMap['produtos-vendidos-prejuizo'])))
+             && (!('ranking-vendedores-filial' in oldMap) || (('ranking-vendedores-filial' in newMap) && newMap['ranking-vendedores-filial'].hasAll(oldMap['ranking-vendedores-filial'])))
+             && (!('icms-desonerado-devolucao' in oldMap) || (('icms-desonerado-devolucao' in newMap) && newMap['icms-desonerado-devolucao'].hasAll(oldMap['icms-desonerado-devolucao'])))
+             && (!('valor-final-divergente-ipi' in oldMap) || (('valor-final-divergente-ipi' in newMap) && newMap['valor-final-divergente-ipi'].hasAll(oldMap['valor-final-divergente-ipi'])))
+             && (!('vencimento-parcela-divergente' in oldMap) || (('vencimento-parcela-divergente' in newMap) && newMap['vencimento-parcela-divergente'].hasAll(oldMap['vencimento-parcela-divergente'])))
+             && (!('caixa-travado-funcionario-inativo' in oldMap) || (('caixa-travado-funcionario-inativo' in newMap) && newMap['caixa-travado-funcionario-inativo'].hasAll(oldMap['caixa-travado-funcionario-inativo'])))
+             && (!('bug-troco-forma-pagamento' in oldMap) || (('bug-troco-forma-pagamento' in newMap) && newMap['bug-troco-forma-pagamento'].hasAll(oldMap['bug-troco-forma-pagamento'])))
+             && (!('rejeicao-535-frete' in oldMap) || (('rejeicao-535-frete' in newMap) && newMap['rejeicao-535-frete'].hasAll(oldMap['rejeicao-535-frete'])))
+             && (!('sped-icms-cst60-entrada' in oldMap) || (('sped-icms-cst60-entrada' in newMap) && newMap['sped-icms-cst60-entrada'].hasAll(oldMap['sped-icms-cst60-entrada'])))
+             && (!('frete-cobrado-outras-despesas' in oldMap) || (('frete-cobrado-outras-despesas' in newMap) && newMap['frete-cobrado-outras-despesas'].hasAll(oldMap['frete-cobrado-outras-despesas'])))
+             && (!('data-emissao-futura' in oldMap) || (('data-emissao-futura' in newMap) && newMap['data-emissao-futura'].hasAll(oldMap['data-emissao-futura'])));
+    }
+
+    function validSectorIds() {
+      return ['Partner', 'Final', 'Prime', 'Implantação', 'Outro'];
+    }
+
+    function isValidObjectiveKeyList(field) {
+      return request.resource.data[field] is list
+        && request.resource.data[field].hasOnly(validObjectiveKeys());
+    }
+
+    function isGrowingList(field) {
+      return !(field in resource.data)
+        || request.resource.data[field].hasAll(resource.data[field]);
+    }
+
+    function isValidSector() {
+      return !('sector' in request.resource.data)
+        || request.resource.data.sector == null
+        || (request.resource.data.sector is string
+            && request.resource.data.sector in validSectorIds());
+    }
+
+    function hasOnlyLeaderboardFields() {
+      return request.resource.data.keys().hasOnly(
+        ['displayName', 'solved', 'hints', 'sector', 'completedAt', 'updatedAt']
+      );
+    }
+
+    function isValidLeaderboardFields() {
+      return request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 40
+        && isValidObjectiveKeyList('solved')
+        && isValidObjectiveKeyList('hints')
+        && isValidSector()
+        && request.resource.data.solved.size() > 0;
+    }
+
+    function setsCompletionNow() {
+      return !('completedAt' in request.resource.data)
+        || request.resource.data.completedAt == request.time;
+    }
+
+    function keepsCompletion() {
+      return !('completedAt' in resource.data)
+        ? setsCompletionNow()
+        : (('completedAt' in request.resource.data)
+           && request.resource.data.completedAt == resource.data.completedAt);
+    }
+
+    function keepsSector() {
+      return !('sector' in resource.data)
+        || resource.data.sector == null
+        || (('sector' in request.resource.data)
+            && request.resource.data.sector == resource.data.sector);
     }
 
     match /users/{userId} {
@@ -105,12 +276,35 @@ service cloud.firestore {
         && isValidProgressField('solvedByCase')
         && isValidProgressField('hintsUsedByCase')
         && isValidDraftsField('draftsByCase')
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-             ['solvedByCase', 'hintsUsedByCase', 'draftsByCase']
-           )
-        && request.resource.data.diff(resource.data).affectedKeys().all(field,
-             field == 'draftsByCase' || isMonotonic(field)
-           );
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['solvedByCase'])
+            || isMonotonic('solvedByCase'))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['hintsUsedByCase'])
+            || isMonotonic('hintsUsedByCase'));
+    }
+
+    match /leaderboard/{userId} {
+      allow read: if true;
+      allow delete: if false;
+
+      allow create: if isOwner(userId)
+        && hasOnlyLeaderboardFields()
+        && isValidLeaderboardFields()
+        && request.resource.data.updatedAt == request.time
+        && setsCompletionNow();
+
+      allow update: if isOwner(userId)
+        && hasOnlyLeaderboardFields()
+        && isValidLeaderboardFields()
+        && isGrowingList('solved')
+        && isGrowingList('hints')
+        && request.resource.data.updatedAt == request.time
+        && keepsCompletion()
+        && keepsSector();
+    }
+
+    match /devs/{userId} {
+      allow read: if true;
+      allow write: if false;
     }
 
     match /{document=**} {
