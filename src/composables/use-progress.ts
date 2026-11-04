@@ -2,17 +2,13 @@ import { computed, effectScope, reactive, watch } from "vue";
 import { doc, setDoc, arrayUnion } from "firebase/firestore";
 import { useCurrentUser, useDocument, useFirestore } from "vuefire";
 import { CASES } from "../data/cases/index.ts";
-
-const HINT_PENALTY = 5;
+import { computeTotalXP, progressKey, toProgressKeys } from "../utils/xp.ts";
 
 const guestSolvedByCase = reactive<Record<string, string[]>>({});
 const guestHintsByCase = reactive<Record<string, string[]>>({});
 
 const pendingSolved = new Set<string>();
 const pendingHints = new Set<string>();
-
-const progressKey = (caseId: string, objectiveId: string) =>
-  `${caseId}:${objectiveId}`;
 
 export type ProgressOutcome = "new" | "duplicate" | "error";
 
@@ -145,22 +141,13 @@ function createProgress() {
     return "new";
   }
 
-  const totalXP = computed(() => {
-    let xp = 0;
-    for (const c of CASES) {
-      const solvedIds = solvedByCase.value[c.id] ?? [];
-      for (const obj of c.objectives) {
-        if (solvedIds.includes(obj.id)) xp += obj.xp;
-      }
-    }
-
-    let hintsCount = 0;
-    for (const objectiveIds of Object.values(hintsUsedByCase.value)) {
-      hintsCount += objectiveIds.length;
-    }
-
-    return Math.max(0, xp - hintsCount * HINT_PENALTY);
-  });
+  const totalXP = computed(() =>
+    computeTotalXP(
+      CASES,
+      toProgressKeys(solvedByCase.value),
+      toProgressKeys(hintsUsedByCase.value),
+    ),
+  );
 
   return {
     isSolved,

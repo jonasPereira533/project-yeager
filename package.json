@@ -12,7 +12,12 @@
     "check": "npm run typecheck && npm run lint && npm run test && npm run build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-yeager \"vitest run --config vitest.rules.config.ts\"",
+    "rules:backup": "node scripts/rules.mjs backup",
+    "rules:deploy": "node scripts/rules.mjs deploy",
+    "rules:rollback": "node scripts/rules.mjs rollback",
+    "rules:list": "node scripts/rules.mjs list"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
@@ -36,12 +41,14 @@
     "vuefire": "^3.2.3"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@types/node": "^24.13.3",
     "@types/sql.js": "^1.4.11",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/tsconfig": "^0.9.1",
     "eslint": "^9.39.5",
     "eslint-plugin-vue": "^10.11.1",
+    "firebase-tools": "^14.23.0",
     "globals": "^14.0.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.71.0",

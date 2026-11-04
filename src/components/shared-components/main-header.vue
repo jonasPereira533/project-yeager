@@ -29,6 +29,9 @@ const handleAuthClick = () => {
       <div class="xp-badge">
         <span class="xp-value">{{ totalXP }} XP</span>
       </div>
+      <RouterLink class="nav-link" :to="{ name: 'ranking-page' }">
+        Placar
+      </RouterLink>
       <button
         type="button"
         class="login-link"
@@ -83,7 +86,8 @@ header {
   color: var(--ink-muted);
   font-weight: 600;
 }
-.login-link {
+.login-link,
+.nav-link {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.85rem;
   color: var(--ink-muted);
@@ -97,9 +101,22 @@ header {
     border-color 0.2s,
     color 0.2s;
 }
-.login-link:hover {
+.login-link:hover,
+.nav-link:hover {
   border-color: var(--ink-muted);
   color: var(--ink);
+}
+.nav-link {
+  display: inline-block;
+  line-height: 1.45;
+}
+.nav-link.router-link-active {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.nav-link:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
 }
 .login-link:disabled {
   opacity: 0.55;

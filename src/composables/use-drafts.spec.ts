@@ -16,6 +16,16 @@ function caseIdsFromRules(): string[] {
   return [...block[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
 }
 
+function caseIdsMentionedIn(functionName: string): string[] {
+  const block = rulesSource.match(
+    new RegExp(
+      `function ${functionName}\\([^)]*\\)\\s*\\{[\\s\\S]*?\\n {4}\\}`,
+    ),
+  );
+  if (!block?.[0]) throw new Error(`${functionName}() nao encontrada nas rules`);
+  return [...new Set([...block[0].matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]))];
+}
+
 describe("firestore.rules x src/data/cases.ts", () => {
   it("os ids de caso das rules sao os mesmos de CASES", () => {
     expect(caseIdsFromRules().sort()).toEqual(CASES.map((c) => c.id).sort());
@@ -31,9 +41,15 @@ describe("firestore.rules x src/data/cases.ts", () => {
   });
 
   it("draftsByCase fica fora da verificacao monotonica", () => {
-    expect(rulesSource).toContain(
-      "field == 'draftsByCase' || isMonotonic(field)",
-    );
+    const guarded = [
+      ...rulesSource.matchAll(
+        /hasAny\(\['(\w+)'\]\)\s*\|\| isMonotonic\('(\w+)'\)/g,
+      ),
+    ].map((match) => match[2]);
+
+    expect(guarded).toContain("solvedByCase");
+    expect(guarded).toContain("hintsUsedByCase");
+    expect(guarded).not.toContain("draftsByCase");
   });
 
   it("os objetivos de cada caso cabem em validObjectiveIds", () => {
@@ -49,6 +65,34 @@ describe("firestore.rules x src/data/cases.ts", () => {
     for (const caseItem of CASES) {
       for (const objective of caseItem.objectives) {
         expect(valid.has(objective.id)).toBe(true);
+      }
+    }
+  });
+
+  it("todo caso novo entra tambem nas listas por caso das regras", () => {
+    const expected = CASES.map((c) => c.id).sort();
+    for (const functionName of [
+      "isValidProgressMap",
+      "isMonotonicMaps",
+      "isValidDraftsMap",
+    ]) {
+      expect(caseIdsMentionedIn(functionName).sort()).toEqual(expected);
+    }
+  });
+
+  it("todo caso novo entra na allowlist de chaves do placar", () => {
+    const block = rulesSource.match(
+      /function validObjectiveKeys\(\)\s*\{\s*return\s*\[([\s\S]*?)\]/,
+    );
+    if (!block?.[1]) {
+      throw new Error("validObjectiveKeys() nao encontrada nas rules");
+    }
+    const allowed = new Set(
+      [...block[1].matchAll(/'([^']+)'/g)].map((m) => m[1]),
+    );
+    for (const caseItem of CASES) {
+      for (const objective of caseItem.objectives) {
+        expect(allowed.has(`${caseItem.id}:${objective.id}`)).toBe(true);
       }
     }
   });

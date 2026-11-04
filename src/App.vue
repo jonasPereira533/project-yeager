@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import AppFooter from "./components/shared-components/main-footer.vue";
 import MainHeader from "./components/shared-components/main-header.vue";
+import { useLeaderboardEntry } from "./composables/use-leaderboard-entry";
+
+useLeaderboardEntry();
 </script>
 
 <template>
