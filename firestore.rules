@@ -261,6 +261,49 @@ service cloud.firestore {
             && request.resource.data.sector == resource.data.sector);
     }
 
+    // total de objetivos do app; o teste certificate-rules.spec.ts confere
+    function certificateMinSolved() {
+      return 53;
+    }
+
+    function leaderboardPath(uid) {
+      return /databases/$(database)/documents/leaderboard/$(uid);
+    }
+
+    // quem concluiu tem a linha no placar carimbada e com todos os objetivos
+    function hasFinishedArchive() {
+      return exists(leaderboardPath(request.auth.uid))
+        && ('completedAt' in get(leaderboardPath(request.auth.uid)).data)
+        && get(leaderboardPath(request.auth.uid)).data.solved.size()
+           >= certificateMinSolved();
+    }
+
+    function isValidCertificate(code) {
+      return code.matches('^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$')
+        && request.resource.data.keys().hasOnly(
+          ['uid', 'name', 'hours', 'cases', 'objectives', 'xp', 'issuedAt']
+        )
+        && request.resource.data.keys().hasAll(
+          ['uid', 'name', 'hours', 'cases', 'objectives', 'xp', 'issuedAt']
+        )
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.hours is int
+        && request.resource.data.hours == 10
+        && request.resource.data.cases is int
+        && request.resource.data.cases > 0
+        && request.resource.data.cases <= 100
+        && request.resource.data.objectives is int
+        && request.resource.data.objectives >= certificateMinSolved()
+        && request.resource.data.objectives <= 500
+        && request.resource.data.xp is int
+        && request.resource.data.xp >= 0
+        && request.resource.data.xp <= 100000
+        && request.resource.data.issuedAt == request.time;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow delete: if false;
@@ -300,6 +343,19 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time
         && keepsCompletion()
         && keepsSector();
+    }
+
+    match /certificates/{code} {
+      // o codigo impresso no certificado e o segredo: busca por ele e publica,
+      // listar tudo nao e
+      allow get: if true;
+      allow list: if request.auth != null
+        && resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+
+      allow create: if request.auth != null
+        && isValidCertificate(code)
+        && hasFinishedArchive();
     }
 
     match /devs/{userId} {

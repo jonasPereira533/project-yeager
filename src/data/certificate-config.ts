@@ -13,6 +13,7 @@ export interface CertificateConfig {
   signerRole: string;
   signatureUrl?: string;
   nameFontUrl?: string;
+  validationBaseUrl: string;
 }
 
 export const CERTIFICATE_CONFIG: CertificateConfig = {
@@ -24,4 +25,5 @@ export const CERTIFICATE_CONFIG: CertificateConfig = {
   signerRole: "Desenvolvedores do projeto Yeager",
   signatureUrl,
   nameFontUrl,
+  validationBaseUrl: "https://project-yeager.vercel.app",
 };

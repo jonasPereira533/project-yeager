@@ -18,13 +18,11 @@ const backupDir = join(homedir(), ".yeager-rules");
 const command = process.argv[2];
 const argument = process.argv[3];
 
-function git(...args) {
-  try {
-    return execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
-  } catch {
-    return "";
-  }
-}
+execFileSync("npx", ["firebase", "deploy", "--only", "firestore:rules"], {
+  cwd: root,
+  stdio: "inherit",
+  shell: process.platform === "win32",
+});
 
 function stamp() {
   return new Date().toISOString().replace(/[:.]/g, "-");

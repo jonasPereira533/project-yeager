@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
-import { useCurrentUser, useIsCurrentUserLoaded } from "vuefire";
+import { useCurrentUser, useFirestore, useIsCurrentUserLoaded } from "vuefire";
 import { CASES } from "../../data/cases";
 import { CERTIFICATE_CONFIG } from "../../data/certificate-config";
+import { useAuth } from "../../composables/use-auth";
+import { issueCertificate } from "../../composables/use-certificate-record";
 import { useProgress } from "../../composables/use-progress";
 import { downloadCertificate } from "../../utils/certificate";
+import { certificateValidationUrl } from "../../utils/certificate-code";
 import {
   certificateNameKey,
   readSavedName,
@@ -14,6 +17,8 @@ import {
 
 const user = useCurrentUser();
 const userLoaded = useIsCurrentUserLoaded();
+const db = useFirestore();
+const { loginWithGoogle } = useAuth();
 const { totalXP } = useProgress();
 
 const storageKey = computed(() => certificateNameKey(user.value?.uid));
@@ -30,7 +35,7 @@ const editing = ref(false);
 const draft = ref("");
 // o campo so aparece quando ainda nao ha nome, ou se a pessoa pedir pra trocar
 const showField = computed(
-  () => userLoaded.value && (!knownName.value || editing.value),
+  () => userLoaded.value && !!user.value && (!knownName.value || editing.value),
 );
 
 const pending = ref(false);
@@ -52,8 +57,21 @@ async function startEditing() {
   nameInput.value?.focus();
 }
 
+function validationBase(): string {
+  const { hostname, origin } = window.location;
+  const local = hostname === "localhost" || hostname === "127.0.0.1";
+  return local ? origin : CERTIFICATE_CONFIG.validationBaseUrl;
+}
+
 async function download() {
   if (pending.value || !userLoaded.value) return;
+
+  // a validacao depende de um registro no Firestore, entao so quem esta logado emite
+  const currentUser = user.value;
+  if (!currentUser) {
+    await loginWithGoogle();
+    return;
+  }
 
   const name = (showField.value ? draft.value : knownName.value).trim();
   if (!name) {
@@ -62,29 +80,42 @@ async function download() {
     return;
   }
 
-  if (showField.value) {
-    writeSavedName(storageKey.value, name);
-    savedName.value = name;
-    editing.value = false;
-  }
-
   pending.value = true;
   errorMessage.value = "";
   try {
+    const record = await issueCertificate(db, {
+      uid: currentUser.uid,
+      name,
+      hours: CERTIFICATE_CONFIG.hours,
+      cases: casesCount,
+      objectives: objectivesCount,
+      xp: totalXP.value,
+    });
+
+    if (showField.value) {
+      writeSavedName(storageKey.value, name);
+      savedName.value = name;
+      editing.value = false;
+    }
+
     await downloadCertificate(
       {
-        name,
-        casesCount,
-        objectivesCount,
-        totalXP: totalXP.value,
-        issuedAt: new Date(),
+        name: record.name,
+        casesCount: record.cases,
+        objectivesCount: record.objectives,
+        totalXP: record.xp,
+        issuedAt: record.issuedAt,
+        validationUrl: certificateValidationUrl(validationBase(), record.code),
       },
       CERTIFICATE_CONFIG,
     );
   } catch (error) {
     console.error("Erro ao gerar o certificado:", error);
-    errorMessage.value =
-      "Não foi possível gerar o certificado. Tente novamente em instantes.";
+    const denied =
+      (error as { code?: string } | null)?.code === "permission-denied";
+    errorMessage.value = denied
+      ? "Não consegui registrar o certificado. Confira se todos os chamados estão concluídos e se você está logado."
+      : "Não foi possível gerar o certificado. Tente novamente em instantes.";
   } finally {
     pending.value = false;
   }
@@ -105,7 +136,10 @@ defineExpose({ focus });
       <span class="eyebrow">Certificado</span>
       <span class="detail">
         {{ CERTIFICATE_CONFIG.hours }} horas complementares
-        <template v-if="knownName && !showField">
+        <template v-if="!user && userLoaded">
+          · entre com Google para emitir com código de validação
+        </template>
+        <template v-else-if="knownName && !showField">
           · em nome de {{ knownName }}
         </template>
       </span>
@@ -131,7 +165,7 @@ defineExpose({ focus });
         />
       </template>
       <button
-        v-else-if="knownName"
+        v-else-if="user && knownName"
         type="button"
         class="link"
         @click="startEditing"
@@ -147,7 +181,13 @@ defineExpose({ focus });
         :aria-busy="pending"
         @click="download"
       >
-        {{ pending ? "Gerando…" : "Baixar certificado" }}
+        {{
+          pending
+            ? "Gerando…"
+            : user
+              ? "Baixar certificado"
+              : "Entrar para baixar"
+        }}
       </button>
     </div>
 

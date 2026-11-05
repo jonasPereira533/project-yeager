@@ -1,4 +1,5 @@
 import type { CertificateConfig } from "../data/certificate-config";
+import { withoutProtocol } from "./certificate-code";
 
 export interface CertificateData {
   /** Nome de quem recebe o certificado. */
@@ -9,6 +10,8 @@ export interface CertificateData {
   issuedAt: Date;
   /** Assinatura já carregada como data URL (PNG). Opcional. */
   signatureDataUrl?: string;
+  /** Endereço de validação, impresso no rodapé e clicável. Opcional. */
+  validationUrl?: string;
   /** Fonte cursiva do nome (TTF) em base64. Opcional. */
   nameFontBase64?: string;
 }
@@ -180,6 +183,15 @@ export async function buildCertificate(
   doc.setFontSize(11);
   doc.setTextColor(...MUTED);
   doc.text(config.signerRole, cx, lineY + 12.5, { align: "center" });
+
+  if (data.validationUrl) {
+    const label = `Validação: ${withoutProtocol(data.validationUrl)}`;
+    doc.setFont("times", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(...MUTED);
+    const x = cx - doc.getTextWidth(label) / 2;
+    doc.textWithLink(label, x, 191, { url: data.validationUrl });
+  }
 
   return doc.output("blob");
 }

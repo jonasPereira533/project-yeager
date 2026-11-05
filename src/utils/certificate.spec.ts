@@ -43,6 +43,19 @@ describe("buildCertificate", () => {
     expect(text).toContain("10 \\(DEZ\\)");
   });
 
+  it("imprime o endereco de validacao como link", async () => {
+    const blob = await buildCertificate(
+      {
+        ...DATA,
+        validationUrl: "https://exemplo.com/verificar/ABCD-EFGH-JKLM",
+      },
+      CERTIFICATE_CONFIG,
+    );
+    const text = Buffer.from(await blob.arrayBuffer()).toString("latin1");
+    expect(text).toContain("exemplo.com/verificar/ABCD-EFGH-JKLM");
+    expect(text).toContain("/URI");
+  });
+
   it("embute a fonte cursiva e a assinatura sem quebrar", async () => {
     const font = readFileSync(
       new URL("../assets/fonts/great-vibes.ttf", import.meta.url),
