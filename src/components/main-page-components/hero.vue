@@ -7,10 +7,10 @@ const { user } = useAuth();
 <template>
   <section class="hero">
     <div>
-      <div class="eyebrow">Treinamento interno — VR Tech</div>
+      <div class="eyebrow">Treinamento de SQL</div>
       <h1>Aprenda SQL<br />resolvendo chamados reais.</h1>
       <p>
-        Yeager transforma o banco de dados da VR Tech em uma investigação.
+        Yeager transforma um banco de dados em uma investigação.
         Escolha um chamado, escreva a consulta certa e descubra o que os
         registros têm a esconder.
       </p>
