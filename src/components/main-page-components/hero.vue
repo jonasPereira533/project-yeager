@@ -7,7 +7,7 @@ const { user } = useAuth();
 <template>
   <section class="hero">
     <div>
-      <div class="eyebrow">Treinamento de SQL</div>
+      <div class="eyebrow">Laboratório de SQL</div>
       <h1>Aprenda SQL<br />resolvendo chamados reais.</h1>
       <p>
         Yeager transforma um banco de dados em uma investigação.

@@ -1,23 +1,18 @@
+
+import signatureUrl from "../assets/assinatura.png";
+import nameFontUrl from "../assets/fonts/great-vibes.ttf?url";
 /**
- * Dados fixos do certificado. Tudo que a empresa/assinante precisa
- * trocar fica aqui, num arquivo só.
+  Dados do certificado
  */
 export interface CertificateConfig {
-  /** Carga horária complementar em horas. */
   hours: number;
-  /** A carga horária por extenso, para não dar margem a rasura. */
   hoursInWords: string;
-  /** Nome do treinamento, como aparece no texto. */
   courseName: string;
-  /** Quem emite o certificado. */
   issuer: string;
   signerName: string;
   signerRole: string;
-  /**
-   * URL da imagem da assinatura (PNG com fundo transparente).
-   * Sem imagem, o PDF usa o nome do assinante em itálico.
-   */
   signatureUrl?: string;
+  nameFontUrl?: string;
 }
 
 export const CERTIFICATE_CONFIG: CertificateConfig = {
@@ -25,6 +20,8 @@ export const CERTIFICATE_CONFIG: CertificateConfig = {
   hoursInWords: "dez",
   courseName: "Yeager — Laboratório de SQL",
   issuer: "JJ Informática",
-  signerName: "Jonas Pereira da Silva",
-  signerRole: "Desenvolvedor do projeto Yeager",
+  signerName: "Jonas P. Silva e Juarez Goulart",
+  signerRole: "Desenvolvedores do projeto Yeager",
+  signatureUrl,
+  nameFontUrl,
 };

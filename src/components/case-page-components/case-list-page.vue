@@ -16,11 +16,10 @@ const certificatePanel = ref<InstanceType<typeof CertificatePanel> | null>(
   null,
 );
 
-const archiveComplete = computed(
-    () =>
-        isArchiveComplete(CASES, (caseId, objectiveId) =>
-            isSolved(caseId, objectiveId),
-        ) || true,
+const archiveComplete = computed(() =>
+    isArchiveComplete(CASES, (caseId, objectiveId) =>
+        isSolved(caseId, objectiveId),
+    ),
 );
 
 function maybeCelebrateArchive() {

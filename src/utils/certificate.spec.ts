@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CERTIFICATE_CONFIG } from "../data/certificate-config";
 import {
@@ -39,6 +40,20 @@ describe("buildCertificate", () => {
     expect(text.startsWith("%PDF")).toBe(true);
     expect(text).toContain("Maria da Concei");
     expect(text).toContain("1285");
-    expect(text).toContain("10 \\(dez\\)");
+    expect(text).toContain("10 \\(DEZ\\)");
+  });
+
+  it("embute a fonte cursiva e a assinatura sem quebrar", async () => {
+    const font = readFileSync(
+      new URL("../assets/fonts/great-vibes.ttf", import.meta.url),
+    ).toString("base64");
+    const signature = `data:image/png;base64,${readFileSync(
+      new URL("../assets/assinatura.png", import.meta.url),
+    ).toString("base64")}`;
+    const blob = await buildCertificate(
+      { ...DATA, nameFontBase64: font, signatureDataUrl: signature },
+      CERTIFICATE_CONFIG,
+    );
+    expect(blob.size).toBeGreaterThan(50_000);
   });
 });

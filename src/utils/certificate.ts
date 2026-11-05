@@ -9,13 +9,18 @@ export interface CertificateData {
   issuedAt: Date;
   /** Assinatura já carregada como data URL (PNG). Opcional. */
   signatureDataUrl?: string;
+  /** Fonte cursiva do nome (TTF) em base64. Opcional. */
+  nameFontBase64?: string;
 }
+
+type Rgb = [number, number, number];
 
 const PAGE_W = 297;
 const PAGE_H = 210;
-const INK: [number, number, number] = [20, 23, 28];
-const MUTED: [number, number, number] = [95, 101, 110];
-const AMBER: [number, number, number] = [196, 130, 20];
+const NAVY: Rgb = [11, 42, 94];
+const GOLD: Rgb = [201, 169, 78];
+const MUTED: Rgb = [70, 84, 112];
+const SCRIPT_FONT = "GreatVibes";
 
 export function formatIssueDate(date: Date): string {
   return date.toLocaleDateString("pt-BR", {
@@ -33,6 +38,18 @@ export function certificateFileName(name: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return `certificado-yeager${slug ? `-${slug}` : ""}.pdf`;
+}
+
+export function certificateBody(
+  data: CertificateData,
+  config: CertificateConfig,
+): string {
+  return (
+    `concluiu todos os ${data.casesCount} chamados (${data.objectivesCount} objetivos) ` +
+    `do treinamento ${config.courseName}, acumulando ${data.totalXP} XP, ` +
+    `com carga horária complementar de ${config.hours} (${config.hoursInWords}) horas. ` +
+    `Emitido em ${formatIssueDate(data.issuedAt)} por ${config.issuer}.`
+  ).toLocaleUpperCase("pt-BR");
 }
 
 /**
@@ -53,101 +70,121 @@ export async function buildCertificate(
     subject: config.courseName,
   });
 
-  // moldura dupla
-  doc.setDrawColor(...AMBER);
-  doc.setLineWidth(1.2);
-  doc.rect(10, 10, PAGE_W - 20, PAGE_H - 20);
-  doc.setDrawColor(...INK);
-  doc.setLineWidth(0.3);
-  doc.rect(14, 14, PAGE_W - 28, PAGE_H - 28);
+  // ponto no canto superior esquerdo; com flip, o canto oposto (espelhado)
+  const corner = (flip: boolean) => (x: number, y: number) =>
+    flip ? ([PAGE_W - x, PAGE_H - y] as const) : ([x, y] as const);
 
-  doc.setTextColor(...AMBER);
-  doc.setFont("courier", "bold");
-  doc.setFontSize(11);
-  doc.text("YEAGER  /  FILA DE CHAMADOS", cx, 30, {
-    align: "center",
-    charSpace: 1.5,
-  });
+  for (const flip of [false, true]) {
+    const p = corner(flip);
 
-  doc.setTextColor(...INK);
-  doc.setFont("times", "bold");
-  doc.setFontSize(34);
-  doc.text("CERTIFICADO DE CONCLUSÃO", cx, 52, { align: "center" });
+    doc.setFillColor(...NAVY);
+    doc.triangle(...p(0, 0), ...p(65, 0), ...p(0, 65), "F");
 
-  doc.setFont("times", "normal");
-  doc.setFontSize(14);
-  doc.setTextColor(...MUTED);
-  doc.text("Certificamos que", cx, 70, { align: "center" });
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.6);
+    doc.line(...p(46, 0), ...p(0, 46));
+    doc.line(...p(51, 0), ...p(0, 51));
 
-  doc.setTextColor(...INK);
-  doc.setFont("times", "bolditalic");
-  doc.setFontSize(30);
-  const name = data.name.trim();
-  doc.text(name, cx, 86, { align: "center", maxWidth: PAGE_W - 60 });
-  const nameWidth = Math.min(doc.getTextWidth(name), PAGE_W - 60);
-  doc.setDrawColor(...AMBER);
-  doc.setLineWidth(0.5);
-  doc.line(cx - nameWidth / 2 - 6, 90, cx + nameWidth / 2 + 6, 90);
+    doc.setDrawColor(...NAVY);
+    doc.setLineWidth(0.9);
+    doc.line(...p(81, 0), ...p(0, 81));
+  }
 
-  doc.setFont("times", "normal");
-  doc.setFontSize(14);
-  doc.setTextColor(...INK);
-  const body =
-    `concluiu todos os ${data.casesCount} chamados (${data.objectivesCount} objetivos) ` +
-    `do treinamento ${config.courseName}, resolvendo consultas SQL em casos de banco de dados, ` +
-    `e acumulou ${data.totalXP} XP.`;
-  doc.text(body, cx, 106, {
-    align: "center",
-    maxWidth: 210,
-    lineHeightFactor: 1.5,
-  });
-
-  doc.setFont("times", "bold");
-  doc.setFontSize(15);
-  doc.text(
-    `Carga horária complementar: ${config.hours} (${config.hoursInWords}) horas`,
-    cx,
-    128,
-    { align: "center" },
+  // moldura com dois cantos cortados na diagonal
+  doc.setDrawColor(...NAVY);
+  doc.setLineWidth(0.9);
+  doc.lines(
+    [
+      [214.4, 0],
+      [0, 130.7],
+      [-60.4, 59.9],
+      [-214.4, 0],
+      [0, -130.7],
+      [60.4, -59.9],
+    ],
+    71.5,
+    9.7,
+    [1, 1],
+    "S",
+    true,
   );
 
+  doc.setTextColor(...NAVY);
   doc.setFont("times", "normal");
-  doc.setFontSize(11);
-  doc.setTextColor(...MUTED);
-  doc.text(`Emitido em ${formatIssueDate(data.issuedAt)}.`, cx, 142, {
+  doc.setFontSize(58);
+  doc.text("CERTIFICADO", cx, 52, { align: "center", charSpace: 0.6 });
+
+  doc.setFontSize(12.5);
+  doc.text("ESTE CERTIFICADO COMPROVA QUE", cx, 68, {
     align: "center",
+    charSpace: 0.3,
+  });
+
+  // nome em cursiva, encolhido se for comprido demais para a pagina
+  const name = data.name.trim();
+  const hasScript = Boolean(data.nameFontBase64);
+  if (data.nameFontBase64) {
+    doc.addFileToVFS(`${SCRIPT_FONT}.ttf`, data.nameFontBase64);
+    doc.addFont(`${SCRIPT_FONT}.ttf`, SCRIPT_FONT, "normal");
+  }
+  doc.setFont(
+    hasScript ? SCRIPT_FONT : "times",
+    hasScript ? "normal" : "bolditalic",
+  );
+  let nameSize = hasScript ? 48 : 34;
+  doc.setFontSize(nameSize);
+  while (nameSize > 18 && doc.getTextWidth(name) > 215) {
+    nameSize -= 2;
+    doc.setFontSize(nameSize);
+  }
+  doc.text(name, cx, 93, { align: "center" });
+
+  doc.setFont("times", "normal");
+  doc.setFontSize(12.5);
+  doc.text(certificateBody(data, config), cx, 111, {
+    align: "center",
+    maxWidth: 220,
+    lineHeightFactor: 1.65,
+    charSpace: 0.2,
   });
 
   // assinatura
-  const lineY = 172;
-  doc.setDrawColor(...INK);
-  doc.setLineWidth(0.3);
-  doc.line(cx - 45, lineY, cx + 45, lineY);
+  const lineY = 168;
+  doc.setDrawColor(...NAVY);
+  doc.setLineWidth(0.5);
+  doc.line(cx - 52, lineY, cx + 52, lineY);
 
   if (data.signatureDataUrl) {
-    doc.addImage(data.signatureDataUrl, "PNG", cx - 25, lineY - 22, 50, 20);
+    const props = doc.getImageProperties(data.signatureDataUrl);
+    const width = 62;
+    const height = (width * props.height) / props.width;
+    doc.addImage(
+      data.signatureDataUrl,
+      "PNG",
+      cx - width / 2,
+      lineY - height + 3,
+      width,
+      height,
+    );
   } else {
-    doc.setTextColor(...INK);
+    doc.setTextColor(...NAVY);
     doc.setFont("times", "italic");
     doc.setFontSize(20);
-    doc.text(config.signerName, cx, lineY - 4, { align: "center" });
+    doc.text(config.signerName, cx, lineY - 3, { align: "center" });
   }
 
-  doc.setTextColor(...INK);
-  doc.setFont("times", "bold");
-  doc.setFontSize(12);
-  doc.text(config.signerName, cx, lineY + 6, { align: "center" });
+  doc.setTextColor(...NAVY);
   doc.setFont("times", "normal");
-  doc.setFontSize(10);
+  doc.setFontSize(12.5);
+  doc.text(config.signerName, cx, lineY + 7, { align: "center" });
+  doc.setFontSize(11);
   doc.setTextColor(...MUTED);
-  doc.text(`${config.signerRole} · ${config.issuer}`, cx, lineY + 11, {
-    align: "center",
-  });
+  doc.text(config.signerRole, cx, lineY + 12.5, { align: "center" });
 
   return doc.output("blob");
 }
 
-async function loadSignature(url: string | undefined) {
+async function loadAsDataUrl(url: string | undefined) {
   if (!url) return undefined;
   try {
     const response = await fetch(url);
@@ -160,16 +197,26 @@ async function loadSignature(url: string | undefined) {
       reader.readAsDataURL(blob);
     });
   } catch {
-    return undefined; // sem imagem: o PDF cai no nome em italico
+    return undefined; // sem o arquivo, o PDF usa o visual alternativo
   }
 }
 
 export async function downloadCertificate(
-  data: Omit<CertificateData, "signatureDataUrl">,
+  data: Omit<CertificateData, "signatureDataUrl" | "nameFontBase64">,
   config: CertificateConfig,
 ): Promise<void> {
-  const signatureDataUrl = await loadSignature(config.signatureUrl);
-  const blob = await buildCertificate({ ...data, signatureDataUrl }, config);
+  const [signatureDataUrl, fontDataUrl] = await Promise.all([
+    loadAsDataUrl(config.signatureUrl),
+    loadAsDataUrl(config.nameFontUrl),
+  ]);
+  const blob = await buildCertificate(
+    {
+      ...data,
+      signatureDataUrl,
+      nameFontBase64: fontDataUrl?.split(",")[1],
+    },
+    config,
+  );
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
