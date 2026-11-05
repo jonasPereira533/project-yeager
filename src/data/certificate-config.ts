@@ -24,7 +24,7 @@ export const CERTIFICATE_CONFIG: CertificateConfig = {
   hours: 10,
   hoursInWords: "dez",
   courseName: "Yeager — Laboratório de SQL",
-  issuer: "JJ Informática", // TODO: confirmar emissor (JJ Informática ou VR Tech)
-  signerName: "Jonas", // TODO: nome completo
-  signerRole: "Desenvolvedor do projeto Yeager", // TODO: confirmar cargo
+  issuer: "JJ Informática",
+  signerName: "Jonas Pereira da Silva",
+  signerRole: "Desenvolvedor do projeto Yeager",
 };

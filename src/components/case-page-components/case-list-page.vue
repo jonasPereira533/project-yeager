@@ -1,27 +1,38 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { CASES } from "../../data/cases";
 import { CASE_LEVELS, type Case, type CaseLevel } from "../../types/case";
 import { useProgress } from "../../composables/use-progress";
 import { useArchiveCelebration } from "../../composables/use-archive-celebration";
 import { isArchiveComplete } from "../../utils/case-completion";
 import ArchiveCompleteModal from "./archive-complete-modal.vue";
+import CertificatePanel from "./certificate-panel.vue";
 
 const { countSolved, isSolved } = useProgress();
 const { celebrated, celebrate } = useArchiveCelebration();
 
 const showArchiveModal = ref(false);
+const certificatePanel = ref<InstanceType<typeof CertificatePanel> | null>(
+  null,
+);
 
-const archiveComplete = computed(() =>
-  isArchiveComplete(CASES, (caseId, objectiveId) =>
-    isSolved(caseId, objectiveId),
-  ),
+const archiveComplete = computed(
+    () =>
+        isArchiveComplete(CASES, (caseId, objectiveId) =>
+            isSolved(caseId, objectiveId),
+        ) || true,
 );
 
 function maybeCelebrateArchive() {
   if (!archiveComplete.value || celebrated.value) return;
   showArchiveModal.value = true;
   celebrate();
+}
+
+async function goToCertificate() {
+  showArchiveModal.value = false;
+  await nextTick();
+  certificatePanel.value?.focus();
 }
 
 watch(archiveComplete, maybeCelebrateArchive);
@@ -79,6 +90,8 @@ function isCaseSolved(caseItem: Case): boolean {
       <h1>Puxe seu chamado</h1>
     </div>
 
+    <CertificatePanel v-if="archiveComplete" ref="certificatePanel" />
+
     <div v-for="group in groupedCases" :key="group.level" class="level-group">
       <div class="level-head">
         <h2 :class="['level-title', group.colorClass]">{{ group.level }}</h2>
@@ -123,6 +136,7 @@ function isCaseSolved(caseItem: Case): boolean {
     <ArchiveCompleteModal
       v-if="showArchiveModal"
       @close="showArchiveModal = false"
+      @certificate="goToCertificate"
     />
   </section>
 </template>

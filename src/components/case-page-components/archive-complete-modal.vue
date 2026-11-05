@@ -6,6 +6,7 @@ import { useDialogFocusTrap } from "../../composables/use-dialog-focus-trap";
 
 const emit = defineEmits<{
   close: [];
+  certificate: [];
 }>();
 
 const { isHintUsed, totalXP } = useProgress();
@@ -68,7 +69,14 @@ const { onKeydown } = useDialogFocusTrap(dialog, () => emit("close"));
         </div>
 
         <div class="actions">
-          <button type="button" class="btn btn-primary" @click="emit('close')">
+          <button
+            type="button"
+            class="btn btn-primary"
+            @click="emit('certificate')"
+          >
+            Emitir certificado
+          </button>
+          <button type="button" class="btn btn-ghost" @click="emit('close')">
             Fechar a fila
           </button>
         </div>
@@ -182,6 +190,14 @@ const { onKeydown } = useDialogFocusTrap(dialog, () => emit("close"));
 .btn-primary {
   background: var(--amber);
   color: var(--bg);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--rule);
+}
+.btn-ghost:hover {
+  border-color: var(--ink-muted);
 }
 .btn-primary:hover {
   filter: brightness(1.1);
