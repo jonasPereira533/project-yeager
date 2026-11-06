@@ -304,6 +304,13 @@ service cloud.firestore {
         && request.resource.data.issuedAt == request.time;
     }
 
+    // so valida o campo que esta sendo gravado; o que nao mudou ja foi validado
+    // quando entrou, e revalidar tudo a cada escrita estoura o limite de
+    // expressoes por requisicao nos jogadores com muito progresso
+    function changes(field) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([field]);
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow delete: if false;
@@ -316,13 +323,11 @@ service cloud.firestore {
 
       allow update: if isOwner(userId)
         && hasOnlyAppFields()
-        && isValidProgressField('solvedByCase')
-        && isValidProgressField('hintsUsedByCase')
-        && isValidDraftsField('draftsByCase')
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['solvedByCase'])
-            || isMonotonic('solvedByCase'))
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['hintsUsedByCase'])
-            || isMonotonic('hintsUsedByCase'));
+        && (!changes('solvedByCase')
+            || (isValidProgressField('solvedByCase') && isMonotonic('solvedByCase')))
+        && (!changes('hintsUsedByCase')
+            || (isValidProgressField('hintsUsedByCase') && isMonotonic('hintsUsedByCase')))
+        && (!changes('draftsByCase') || isValidDraftsField('draftsByCase'));
     }
 
     match /leaderboard/{userId} {
