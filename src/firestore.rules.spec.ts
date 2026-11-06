@@ -7,6 +7,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
+import { CASES } from "./data/cases";
 import {
   collection,
   deleteDoc,
@@ -14,10 +15,12 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   serverTimestamp,
   setDoc,
   Timestamp,
   updateDoc,
+  where,
   type Firestore,
 } from "firebase/firestore";
 
@@ -440,5 +443,130 @@ describe("o documento sobrevive ao caminho feliz", () => {
     if (!Array.isArray(data.solved) || data.solved.length !== 1) {
       throw new Error("solved inesperado");
     }
+  });
+});
+
+const ALL_KEYS = CASES.flatMap((item) =>
+  item.objectives.map((objective) => `${item.id}:${objective.id}`),
+);
+const CODE = "ABCD-EFGH-JKLM";
+
+function certificate(overrides: Record<string, unknown> = {}) {
+  return {
+    uid: ALICE,
+    name: "Ana Souza",
+    hours: 10,
+    cases: CASES.length,
+    objectives: ALL_KEYS.length,
+    xp: 1500,
+    issuedAt: serverTimestamp(),
+    ...overrides,
+  };
+}
+
+function certificateRef(db: Firestore, code = CODE) {
+  return doc(db, "certificates", code);
+}
+
+async function finishArchive(uid = ALICE, solved = ALL_KEYS) {
+  await assertSucceeds(
+    setDoc(
+      lineRef(asUser(uid), uid),
+      line({ solved, completedAt: serverTimestamp() }),
+    ),
+  );
+}
+
+describe("certificados: quem pode emitir", () => {
+  it("quem concluiu tudo cria o proprio certificado", async () => {
+    await finishArchive();
+    await assertSucceeds(setDoc(certificateRef(asUser(ALICE)), certificate()));
+  });
+
+  it("sem linha no placar, nao emite", async () => {
+    await assertFails(setDoc(certificateRef(asUser(ALICE)), certificate()));
+  });
+
+  it("linha sem carimbo de conclusao, nao emite", async () => {
+    await assertSucceeds(
+      setDoc(lineRef(asUser(ALICE)), line({ solved: ALL_KEYS })),
+    );
+    await assertFails(setDoc(certificateRef(asUser(ALICE)), certificate()));
+  });
+
+  it("com objetivos a menos, nao emite", async () => {
+    await finishArchive(ALICE, ALL_KEYS.slice(0, 10));
+    await assertFails(setDoc(certificateRef(asUser(ALICE)), certificate()));
+  });
+
+  it("ninguem emite em nome de outra pessoa", async () => {
+    await finishArchive(BOB);
+    await assertFails(
+      setDoc(certificateRef(asUser(BOB)), certificate({ uid: ALICE })),
+    );
+  });
+
+  it("anonimo nao emite", async () => {
+    await finishArchive();
+    await assertFails(setDoc(certificateRef(asAnon()), certificate()));
+  });
+});
+
+describe("certificados: formato do documento", () => {
+  it("rejeita codigo fora do formato", async () => {
+    await finishArchive();
+    await assertFails(
+      setDoc(certificateRef(asUser(ALICE), "abc"), certificate()),
+    );
+  });
+
+  it("rejeita campo extra, carga horaria alterada e data forjada", async () => {
+    await finishArchive();
+    const alice = asUser(ALICE);
+    await assertFails(setDoc(certificateRef(alice), certificate({ extra: 1 })));
+    await assertFails(
+      setDoc(certificateRef(alice), certificate({ hours: 40 })),
+    );
+    await assertFails(
+      setDoc(
+        certificateRef(alice),
+        certificate({ issuedAt: Timestamp.fromMillis(1) }),
+      ),
+    );
+    await assertFails(setDoc(certificateRef(alice), certificate({ name: "" })));
+  });
+});
+
+describe("certificados: leitura e imutabilidade", () => {
+  it("qualquer pessoa valida por codigo, sem login", async () => {
+    await finishArchive();
+    await assertSucceeds(setDoc(certificateRef(asUser(ALICE)), certificate()));
+    await assertSucceeds(getDoc(certificateRef(asAnon())));
+  });
+
+  it("ninguem lista todos os certificados", async () => {
+    await assertFails(getDocs(collection(asAnon(), "certificates")));
+    await assertFails(getDocs(collection(asUser(ALICE), "certificates")));
+  });
+
+  it("o dono lista os proprios certificados", async () => {
+    await finishArchive();
+    await assertSucceeds(setDoc(certificateRef(asUser(ALICE)), certificate()));
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(asUser(ALICE), "certificates"),
+          where("uid", "==", ALICE),
+        ),
+      ),
+    );
+  });
+
+  it("nao da para alterar nem apagar", async () => {
+    await finishArchive();
+    const alice = asUser(ALICE);
+    await assertSucceeds(setDoc(certificateRef(alice), certificate()));
+    await assertFails(updateDoc(certificateRef(alice), { name: "Outra" }));
+    await assertFails(deleteDoc(certificateRef(alice)));
   });
 });

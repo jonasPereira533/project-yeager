@@ -53,8 +53,8 @@ function backup() {
   copyFileSync(rulesPath, join(backupDir, name));
   const { commit, dirty } = currentCommit();
   writeFileSync(
-    join(backupDir, `${name}.json`),
-    JSON.stringify({ commit, dirty, savedAt: new Date().toISOString() }, null, 2),
+      join(backupDir, `${name}.json`),
+      JSON.stringify({ commit, dirty, savedAt: new Date().toISOString() }, null, 2),
   );
   console.log(`copia salva: ${join(backupDir, name)}`);
   console.log(`             commit ${commit}${dirty ? " (com mudancas locais)" : ""}`);
@@ -64,9 +64,9 @@ function backup() {
 function backups() {
   if (!existsSync(backupDir)) return [];
   return readdirSync(backupDir)
-    .filter((name) => name.endsWith(".rules"))
-    .sort()
-    .reverse();
+      .filter((name) => name.endsWith(".rules"))
+      .sort()
+      .reverse();
 }
 
 function list() {
@@ -79,8 +79,8 @@ function list() {
   for (const name of all) {
     const meta = join(backupDir, `${name}.json`);
     const info = existsSync(meta)
-      ? JSON.parse(readFileSync(meta, "utf8"))
-      : { commit: "?" };
+        ? JSON.parse(readFileSync(meta, "utf8"))
+        : { commit: "?" };
     console.log(`  ${name}  commit ${info.commit}${info.dirty ? "+local" : ""}`);
   }
 }
@@ -91,10 +91,12 @@ function deploy() {
     execFileSync("npx", ["firebase", "deploy", "--only", "firestore:rules"], {
       cwd: root,
       stdio: "inherit",
+      // no Windows o npx e um .cmd e so abre por um shell
+      shell: process.platform === "win32",
     });
   } catch {
     console.error(
-      "\nO deploy falhou. O firestore.rules local ja esta no estado desejado;\n" +
+        "\nO deploy falhou. O firestore.rules local ja esta no estado desejado;\n" +
         "confirme com `git diff firestore.rules` e tente de novo quando estiver autenticado.",
     );
     process.exit(1);
