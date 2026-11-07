@@ -40,12 +40,10 @@ describe("firestore.rules x src/data/cases.ts", () => {
     expect(rulesSource).toContain("'draftsByCase'");
   });
 
-  it("draftsByCase fica fora da verificacao monotonica", () => {
+  it("draftsByCase fica fora da verificacao que so deixa crescer", () => {
     const guarded = [
-      ...rulesSource.matchAll(
-        /hasAny\(\['(\w+)'\]\)\s*\|\| isMonotonic\('(\w+)'\)/g,
-      ),
-    ].map((match) => match[2]);
+      ...rulesSource.matchAll(/progressFieldOk\('(\w+)'\)/g),
+    ].map((match) => match[1]);
 
     expect(guarded).toContain("solvedByCase");
     expect(guarded).toContain("hintsUsedByCase");
@@ -73,8 +71,9 @@ describe("firestore.rules x src/data/cases.ts", () => {
     const expected = CASES.map((c) => c.id).sort();
     for (const functionName of [
       "isValidProgressMap",
-      "isMonotonicMaps",
+      "progressChangeOk",
       "isValidDraftsMap",
+      "draftsChangeOk",
     ]) {
       expect(caseIdsMentionedIn(functionName).sort()).toEqual(expected);
     }

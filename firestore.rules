@@ -178,31 +178,78 @@ service cloud.firestore {
       return !(name in request.resource.data) || isValidDraftsMap(request.resource.data[name]);
     }
 
-    function isMonotonic(field) {
-      return !(field in resource.data)
-        || isMonotonicMaps(resource.data[field], request.resource.data[field]);
+    // Regras de escrita do progresso: custo proporcional ao que MUDOU, nao ao
+    // tamanho do documento. O Firestore corta a requisicao em 1.000 expressoes,
+    // e validar tudo a cada escrita estourava isso em quem tem muito progresso.
+    function caseListOk(list, previous) {
+      return isValidObjectiveList(list) && list.hasAll(previous);
     }
 
-    function isMonotonicMaps(oldMap, newMap) {
-      return newMap.keys().hasAll(oldMap.keys())
-             && (!('clientes-bloqueados' in oldMap) || (('clientes-bloqueados' in newMap) && newMap['clientes-bloqueados'].hasAll(oldMap['clientes-bloqueados'])))
-             && (!('estoque-abaixo-minimo' in oldMap) || (('estoque-abaixo-minimo' in newMap) && newMap['estoque-abaixo-minimo'].hasAll(oldMap['estoque-abaixo-minimo'])))
-             && (!('motivos-cancelamento' in oldMap) || (('motivos-cancelamento' in newMap) && newMap['motivos-cancelamento'].hasAll(oldMap['motivos-cancelamento'])))
-             && (!('vendas-nao-efetivadas' in oldMap) || (('vendas-nao-efetivadas' in newMap) && newMap['vendas-nao-efetivadas'].hasAll(oldMap['vendas-nao-efetivadas'])))
-             && (!('itens-fora-preco-tabela' in oldMap) || (('itens-fora-preco-tabela' in newMap) && newMap['itens-fora-preco-tabela'].hasAll(oldMap['itens-fora-preco-tabela'])))
-             && (!('caixas-sem-fechamento' in oldMap) || (('caixas-sem-fechamento' in newMap) && newMap['caixas-sem-fechamento'].hasAll(oldMap['caixas-sem-fechamento'])))
-             && (!('compradores-unicos-alto-valor' in oldMap) || (('compradores-unicos-alto-valor' in newMap) && newMap['compradores-unicos-alto-valor'].hasAll(oldMap['compradores-unicos-alto-valor'])))
-             && (!('produtos-vendidos-prejuizo' in oldMap) || (('produtos-vendidos-prejuizo' in newMap) && newMap['produtos-vendidos-prejuizo'].hasAll(oldMap['produtos-vendidos-prejuizo'])))
-             && (!('ranking-vendedores-filial' in oldMap) || (('ranking-vendedores-filial' in newMap) && newMap['ranking-vendedores-filial'].hasAll(oldMap['ranking-vendedores-filial'])))
-             && (!('icms-desonerado-devolucao' in oldMap) || (('icms-desonerado-devolucao' in newMap) && newMap['icms-desonerado-devolucao'].hasAll(oldMap['icms-desonerado-devolucao'])))
-             && (!('valor-final-divergente-ipi' in oldMap) || (('valor-final-divergente-ipi' in newMap) && newMap['valor-final-divergente-ipi'].hasAll(oldMap['valor-final-divergente-ipi'])))
-             && (!('vencimento-parcela-divergente' in oldMap) || (('vencimento-parcela-divergente' in newMap) && newMap['vencimento-parcela-divergente'].hasAll(oldMap['vencimento-parcela-divergente'])))
-             && (!('caixa-travado-funcionario-inativo' in oldMap) || (('caixa-travado-funcionario-inativo' in newMap) && newMap['caixa-travado-funcionario-inativo'].hasAll(oldMap['caixa-travado-funcionario-inativo'])))
-             && (!('bug-troco-forma-pagamento' in oldMap) || (('bug-troco-forma-pagamento' in newMap) && newMap['bug-troco-forma-pagamento'].hasAll(oldMap['bug-troco-forma-pagamento'])))
-             && (!('rejeicao-535-frete' in oldMap) || (('rejeicao-535-frete' in newMap) && newMap['rejeicao-535-frete'].hasAll(oldMap['rejeicao-535-frete'])))
-             && (!('sped-icms-cst60-entrada' in oldMap) || (('sped-icms-cst60-entrada' in newMap) && newMap['sped-icms-cst60-entrada'].hasAll(oldMap['sped-icms-cst60-entrada'])))
-             && (!('frete-cobrado-outras-despesas' in oldMap) || (('frete-cobrado-outras-despesas' in newMap) && newMap['frete-cobrado-outras-despesas'].hasAll(oldMap['frete-cobrado-outras-despesas'])))
-             && (!('data-emissao-futura' in oldMap) || (('data-emissao-futura' in newMap) && newMap['data-emissao-futura'].hasAll(oldMap['data-emissao-futura'])));
+    // solvedByCase / hintsUsedByCase: so crescem e so aceitam ids validos
+    function progressChangeOk(field) {
+      let oldMap = resource.data[field];
+      let newMap = request.resource.data[field];
+      let changed = newMap.diff(oldMap).affectedKeys();
+      return newMap is map
+        && changed.hasOnly(validCaseIds())
+        && (!changed.hasAny(['clientes-bloqueados']) || caseListOk(newMap['clientes-bloqueados'], oldMap.get('clientes-bloqueados', [])))
+        && (!changed.hasAny(['estoque-abaixo-minimo']) || caseListOk(newMap['estoque-abaixo-minimo'], oldMap.get('estoque-abaixo-minimo', [])))
+        && (!changed.hasAny(['motivos-cancelamento']) || caseListOk(newMap['motivos-cancelamento'], oldMap.get('motivos-cancelamento', [])))
+        && (!changed.hasAny(['vendas-nao-efetivadas']) || caseListOk(newMap['vendas-nao-efetivadas'], oldMap.get('vendas-nao-efetivadas', [])))
+        && (!changed.hasAny(['itens-fora-preco-tabela']) || caseListOk(newMap['itens-fora-preco-tabela'], oldMap.get('itens-fora-preco-tabela', [])))
+        && (!changed.hasAny(['caixas-sem-fechamento']) || caseListOk(newMap['caixas-sem-fechamento'], oldMap.get('caixas-sem-fechamento', [])))
+        && (!changed.hasAny(['compradores-unicos-alto-valor']) || caseListOk(newMap['compradores-unicos-alto-valor'], oldMap.get('compradores-unicos-alto-valor', [])))
+        && (!changed.hasAny(['produtos-vendidos-prejuizo']) || caseListOk(newMap['produtos-vendidos-prejuizo'], oldMap.get('produtos-vendidos-prejuizo', [])))
+        && (!changed.hasAny(['ranking-vendedores-filial']) || caseListOk(newMap['ranking-vendedores-filial'], oldMap.get('ranking-vendedores-filial', [])))
+        && (!changed.hasAny(['icms-desonerado-devolucao']) || caseListOk(newMap['icms-desonerado-devolucao'], oldMap.get('icms-desonerado-devolucao', [])))
+        && (!changed.hasAny(['valor-final-divergente-ipi']) || caseListOk(newMap['valor-final-divergente-ipi'], oldMap.get('valor-final-divergente-ipi', [])))
+        && (!changed.hasAny(['vencimento-parcela-divergente']) || caseListOk(newMap['vencimento-parcela-divergente'], oldMap.get('vencimento-parcela-divergente', [])))
+        && (!changed.hasAny(['caixa-travado-funcionario-inativo']) || caseListOk(newMap['caixa-travado-funcionario-inativo'], oldMap.get('caixa-travado-funcionario-inativo', [])))
+        && (!changed.hasAny(['bug-troco-forma-pagamento']) || caseListOk(newMap['bug-troco-forma-pagamento'], oldMap.get('bug-troco-forma-pagamento', [])))
+        && (!changed.hasAny(['rejeicao-535-frete']) || caseListOk(newMap['rejeicao-535-frete'], oldMap.get('rejeicao-535-frete', [])))
+        && (!changed.hasAny(['sped-icms-cst60-entrada']) || caseListOk(newMap['sped-icms-cst60-entrada'], oldMap.get('sped-icms-cst60-entrada', [])))
+        && (!changed.hasAny(['frete-cobrado-outras-despesas']) || caseListOk(newMap['frete-cobrado-outras-despesas'], oldMap.get('frete-cobrado-outras-despesas', [])))
+        && (!changed.hasAny(['data-emissao-futura']) || caseListOk(newMap['data-emissao-futura'], oldMap.get('data-emissao-futura', [])));
+    }
+
+    function progressFieldOk(field) {
+      return (field in resource.data)
+        ? progressChangeOk(field)
+        : isValidProgressField(field);
+    }
+
+    // draftsByCase: valida so os casos que mudaram; rascunho pode encolher
+    function draftsChangeOk() {
+      let oldMap = resource.data.draftsByCase;
+      let newMap = request.resource.data.draftsByCase;
+      let changed = newMap.diff(oldMap).affectedKeys();
+      return newMap is map
+        && changed.hasOnly(validCaseIds())
+        && (!changed.hasAny(['clientes-bloqueados']) || !('clientes-bloqueados' in newMap) || isValidDraft(newMap['clientes-bloqueados']))
+        && (!changed.hasAny(['estoque-abaixo-minimo']) || !('estoque-abaixo-minimo' in newMap) || isValidDraft(newMap['estoque-abaixo-minimo']))
+        && (!changed.hasAny(['motivos-cancelamento']) || !('motivos-cancelamento' in newMap) || isValidDraft(newMap['motivos-cancelamento']))
+        && (!changed.hasAny(['vendas-nao-efetivadas']) || !('vendas-nao-efetivadas' in newMap) || isValidDraft(newMap['vendas-nao-efetivadas']))
+        && (!changed.hasAny(['itens-fora-preco-tabela']) || !('itens-fora-preco-tabela' in newMap) || isValidDraft(newMap['itens-fora-preco-tabela']))
+        && (!changed.hasAny(['caixas-sem-fechamento']) || !('caixas-sem-fechamento' in newMap) || isValidDraft(newMap['caixas-sem-fechamento']))
+        && (!changed.hasAny(['compradores-unicos-alto-valor']) || !('compradores-unicos-alto-valor' in newMap) || isValidDraft(newMap['compradores-unicos-alto-valor']))
+        && (!changed.hasAny(['produtos-vendidos-prejuizo']) || !('produtos-vendidos-prejuizo' in newMap) || isValidDraft(newMap['produtos-vendidos-prejuizo']))
+        && (!changed.hasAny(['ranking-vendedores-filial']) || !('ranking-vendedores-filial' in newMap) || isValidDraft(newMap['ranking-vendedores-filial']))
+        && (!changed.hasAny(['icms-desonerado-devolucao']) || !('icms-desonerado-devolucao' in newMap) || isValidDraft(newMap['icms-desonerado-devolucao']))
+        && (!changed.hasAny(['valor-final-divergente-ipi']) || !('valor-final-divergente-ipi' in newMap) || isValidDraft(newMap['valor-final-divergente-ipi']))
+        && (!changed.hasAny(['vencimento-parcela-divergente']) || !('vencimento-parcela-divergente' in newMap) || isValidDraft(newMap['vencimento-parcela-divergente']))
+        && (!changed.hasAny(['caixa-travado-funcionario-inativo']) || !('caixa-travado-funcionario-inativo' in newMap) || isValidDraft(newMap['caixa-travado-funcionario-inativo']))
+        && (!changed.hasAny(['bug-troco-forma-pagamento']) || !('bug-troco-forma-pagamento' in newMap) || isValidDraft(newMap['bug-troco-forma-pagamento']))
+        && (!changed.hasAny(['rejeicao-535-frete']) || !('rejeicao-535-frete' in newMap) || isValidDraft(newMap['rejeicao-535-frete']))
+        && (!changed.hasAny(['sped-icms-cst60-entrada']) || !('sped-icms-cst60-entrada' in newMap) || isValidDraft(newMap['sped-icms-cst60-entrada']))
+        && (!changed.hasAny(['frete-cobrado-outras-despesas']) || !('frete-cobrado-outras-despesas' in newMap) || isValidDraft(newMap['frete-cobrado-outras-despesas']))
+        && (!changed.hasAny(['data-emissao-futura']) || !('data-emissao-futura' in newMap) || isValidDraft(newMap['data-emissao-futura']));
+    }
+
+    function draftsFieldOk() {
+      return !('draftsByCase' in request.resource.data)
+        || (('draftsByCase' in resource.data)
+            ? draftsChangeOk()
+            : isValidDraftsField('draftsByCase'));
     }
 
     function validSectorIds() {
@@ -304,6 +351,10 @@ service cloud.firestore {
         && request.resource.data.issuedAt == request.time;
     }
 
+    function changes(field) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([field]);
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow delete: if false;
@@ -316,13 +367,9 @@ service cloud.firestore {
 
       allow update: if isOwner(userId)
         && hasOnlyAppFields()
-        && isValidProgressField('solvedByCase')
-        && isValidProgressField('hintsUsedByCase')
-        && isValidDraftsField('draftsByCase')
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['solvedByCase'])
-            || isMonotonic('solvedByCase'))
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['hintsUsedByCase'])
-            || isMonotonic('hintsUsedByCase'));
+        && (!changes('solvedByCase') || progressFieldOk('solvedByCase'))
+        && (!changes('hintsUsedByCase') || progressFieldOk('hintsUsedByCase'))
+        && (!changes('draftsByCase') || draftsFieldOk());
     }
 
     match /leaderboard/{userId} {

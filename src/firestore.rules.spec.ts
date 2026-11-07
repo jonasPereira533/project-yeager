@@ -9,6 +9,7 @@ import {
 } from "@firebase/rules-unit-testing";
 import { CASES } from "./data/cases";
 import {
+  arrayUnion,
   collection,
   deleteDoc,
   deleteField,
@@ -568,5 +569,135 @@ describe("certificados: leitura e imutabilidade", () => {
     await assertSucceeds(setDoc(certificateRef(alice), certificate()));
     await assertFails(updateDoc(certificateRef(alice), { name: "Outra" }));
     await assertFails(deleteDoc(certificateRef(alice)));
+  });
+});
+
+const CASE_IDS = CASES.map((item) => item.id);
+const LAST_CASE = CASE_IDS[CASE_IDS.length - 1];
+
+// jogador avancado: quase tudo resolvido, com dicas e rascunhos em todos os casos
+function heavyProgress() {
+  const solvedByCase: Record<string, string[]> = {};
+  CASE_IDS.forEach((id) => {
+    solvedByCase[id] = id === LAST_CASE ? ["o1", "o2"] : ["o1", "o2", "o3"];
+  });
+  const hintsUsedByCase: Record<string, string[]> = {};
+  const draftsByCase: Record<string, unknown> = {};
+  for (const id of CASE_IDS) {
+    hintsUsedByCase[id] = id === LAST_CASE ? ["o1"] : ["o1", "o2"];
+    draftsByCase[id] = {
+      activeObjectiveId: "o2",
+      queries: { o1: "SELECT 1;", o2: "SELECT 2;", o3: "SELECT 3;" },
+    };
+  }
+  return { solvedByCase, hintsUsedByCase, draftsByCase };
+}
+
+async function seedUserDoc(uid: string, data: Record<string, unknown>) {
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore() as unknown as Firestore;
+    await setDoc(doc(db, "users", uid), data);
+  });
+}
+
+describe("progresso: salvar nao pode depender do tamanho do documento", () => {
+  it("quem ja tem muito progresso ainda salva o proximo objetivo", async () => {
+    await seedUserDoc(ALICE, heavyProgress());
+    await assertSucceeds(
+      setDoc(
+        doc(asUser(ALICE), "users", ALICE),
+        { solvedByCase: { [LAST_CASE]: arrayUnion("o3") } },
+        { merge: true },
+      ),
+    );
+  });
+
+  it("e ainda salva uma dica usada", async () => {
+    await seedUserDoc(ALICE, heavyProgress());
+    await assertSucceeds(
+      setDoc(
+        doc(asUser(ALICE), "users", ALICE),
+        { hintsUsedByCase: { [LAST_CASE]: arrayUnion("o2") } },
+        { merge: true },
+      ),
+    );
+  });
+
+  it("e ainda salva o rascunho", async () => {
+    await seedUserDoc(ALICE, heavyProgress());
+    await assertSucceeds(
+      updateDoc(doc(asUser(ALICE), "users", ALICE), {
+        [`draftsByCase.${LAST_CASE}`]: {
+          activeObjectiveId: "o3",
+          queries: { o3: "SELECT 4;" },
+        },
+      }),
+    );
+  });
+
+  it("um campo antigo invalido, que nao foi alterado, nao trava o resto", async () => {
+    await seedUserDoc(ALICE, {
+      solvedByCase: { "motivos-cancelamento": ["o1", "o2"] },
+      hintsUsedByCase: {},
+      draftsByCase: { "motivos-cancelamento": { campoAntigo: 1 } },
+    });
+    await assertSucceeds(
+      setDoc(
+        doc(asUser(ALICE), "users", ALICE),
+        { solvedByCase: { "motivos-cancelamento": arrayUnion("o3") } },
+        { merge: true },
+      ),
+    );
+  });
+
+  it("continua barrando objetivo falso no campo que esta sendo gravado", async () => {
+    await seedUserDoc(ALICE, heavyProgress());
+    await assertFails(
+      setDoc(
+        doc(asUser(ALICE), "users", ALICE),
+        { solvedByCase: { "motivos-cancelamento": arrayUnion("o9") } },
+        { merge: true },
+      ),
+    );
+  });
+
+  it("continua barrando caso que nao existe", async () => {
+    await seedUserDoc(ALICE, heavyProgress());
+    await assertFails(
+      setDoc(
+        doc(asUser(ALICE), "users", ALICE),
+        { solvedByCase: { "caso-inventado": arrayUnion("o1") } },
+        { merge: true },
+      ),
+    );
+  });
+
+  it("continua barrando rascunho invalido no campo de rascunhos", async () => {
+    await seedUserDoc(ALICE, heavyProgress());
+    await assertFails(
+      setDoc(
+        doc(asUser(ALICE), "users", ALICE),
+        { draftsByCase: { "motivos-cancelamento": { campoAntigo: 1 } } },
+        { merge: true },
+      ),
+    );
+  });
+
+  it("continua barrando que o progresso encolha num documento grande", async () => {
+    await seedUserDoc(ALICE, heavyProgress());
+    await assertFails(
+      updateDoc(doc(asUser(ALICE), "users", ALICE), {
+        solvedByCase: { "clientes-bloqueados": ["o1"] },
+      }),
+    );
+  });
+
+  it("continua barrando que um caso resolvido seja apagado", async () => {
+    await seedUserDoc(ALICE, heavyProgress());
+    await assertFails(
+      updateDoc(doc(asUser(ALICE), "users", ALICE), {
+        [`solvedByCase.clientes-bloqueados`]: deleteField(),
+      }),
+    );
   });
 });
