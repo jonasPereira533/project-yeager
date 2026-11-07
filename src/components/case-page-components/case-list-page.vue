@@ -1,21 +1,25 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { CASES } from "../../data/cases";
 import { CASE_LEVELS, type Case, type CaseLevel } from "../../types/case";
 import { useProgress } from "../../composables/use-progress";
 import { useArchiveCelebration } from "../../composables/use-archive-celebration";
 import { isArchiveComplete } from "../../utils/case-completion";
 import ArchiveCompleteModal from "./archive-complete-modal.vue";
+import CertificatePanel from "./certificate-panel.vue";
 
 const { countSolved, isSolved } = useProgress();
 const { celebrated, celebrate } = useArchiveCelebration();
 
 const showArchiveModal = ref(false);
+const certificatePanel = ref<InstanceType<typeof CertificatePanel> | null>(
+    null,
+);
 
 const archiveComplete = computed(() =>
-  isArchiveComplete(CASES, (caseId, objectiveId) =>
-    isSolved(caseId, objectiveId),
-  ),
+    isArchiveComplete(CASES, (caseId, objectiveId) =>
+        isSolved(caseId, objectiveId),
+    ),
 );
 
 function maybeCelebrateArchive() {
@@ -24,14 +28,20 @@ function maybeCelebrateArchive() {
   celebrate();
 }
 
+async function goToCertificate() {
+  showArchiveModal.value = false;
+  await nextTick();
+  certificatePanel.value?.focus();
+}
+
 watch(archiveComplete, maybeCelebrateArchive);
 onMounted(maybeCelebrateArchive);
 
 const LEVEL_ORDER = CASE_LEVELS;
 
 const LEVEL_META: Record<
-  CaseLevel,
-  { colorClass: string; description: string }
+    CaseLevel,
+    { colorClass: string; description: string }
 > = {
   Iniciante: {
     colorClass: "low",
@@ -55,12 +65,12 @@ interface CaseGroup {
 }
 
 const groupedCases = computed<CaseGroup[]>(() =>
-  LEVEL_ORDER.map((level) => ({
-    level,
-    colorClass: LEVEL_META[level].colorClass,
-    description: LEVEL_META[level].description,
-    cases: CASES.filter((c) => c.level === level),
-  })).filter((group) => group.cases.length > 0),
+    LEVEL_ORDER.map((level) => ({
+      level,
+      colorClass: LEVEL_META[level].colorClass,
+      description: LEVEL_META[level].description,
+      cases: CASES.filter((c) => c.level === level),
+    })).filter((group) => group.cases.length > 0),
 );
 
 function totalXp(caseItem: Case): number {
@@ -79,6 +89,8 @@ function isCaseSolved(caseItem: Case): boolean {
       <h1>Puxe seu chamado</h1>
     </div>
 
+    <CertificatePanel v-if="archiveComplete" ref="certificatePanel" />
+
     <div v-for="group in groupedCases" :key="group.level" class="level-group">
       <div class="level-head">
         <h2 :class="['level-title', group.colorClass]">{{ group.level }}</h2>
@@ -88,20 +100,20 @@ function isCaseSolved(caseItem: Case): boolean {
 
       <div class="case-grid">
         <RouterLink
-          v-for="caseItem in group.cases"
-          :key="caseItem.id"
-          :class="[
+            v-for="caseItem in group.cases"
+            :key="caseItem.id"
+            :class="[
             'case-card',
             group.colorClass,
             { solved: isCaseSolved(caseItem) },
           ]"
-          :to="{ name: 'solution-page', query: { caseId: caseItem.id } }"
+            :to="{ name: 'solution-page', query: { caseId: caseItem.id } }"
         >
           <div class="case-card-top">
             <span class="case-number">
               <span v-if="isCaseSolved(caseItem)" class="check">✔</span>
               <span v-if="isCaseSolved(caseItem)" class="sr-only"
-                >Resolvido</span
+              >Resolvido</span
               >
               Nº {{ caseItem.caseNumber }}
             </span>
@@ -113,7 +125,7 @@ function isCaseSolved(caseItem: Case): boolean {
           <div class="case-card-footer">
             <span class="case-tables">Tabelas: {{ caseItem.tables }}</span>
             <span class="case-objectives"
-              >{{ caseItem.objectives.length }} objetivos</span
+            >{{ caseItem.objectives.length }} objetivos</span
             >
           </div>
         </RouterLink>
@@ -121,8 +133,9 @@ function isCaseSolved(caseItem: Case): boolean {
     </div>
 
     <ArchiveCompleteModal
-      v-if="showArchiveModal"
-      @close="showArchiveModal = false"
+        v-if="showArchiveModal"
+        @close="showArchiveModal = false"
+        @certificate="goToCertificate"
     />
   </section>
 </template>
@@ -202,10 +215,10 @@ function isCaseSolved(caseItem: Case): boolean {
   color: inherit;
   text-decoration: none;
   transition:
-    border-color 0.2s,
-    background 0.2s,
-    transform 0.15s,
-    opacity 0.2s;
+      border-color 0.2s,
+      background 0.2s,
+      transform 0.15s,
+      opacity 0.2s;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
