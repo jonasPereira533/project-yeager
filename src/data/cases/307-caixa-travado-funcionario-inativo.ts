@@ -36,7 +36,7 @@ export const caso307: Case = {
       id: "o1",
       xp: 30,
       question:
-        "Liste os registros de caixa abertos (Fechamento vazio) cujo funcionário de abertura está inativo. Traga as colunas Ide, Caixa e Nome do funcionário.",
+        "Liste os registros de caixa abertos (Fechamento NULL) cujo funcionário de abertura está inativo. Traga as colunas Ide, Caixa e Nome do funcionário.",
       hint: "Junte Financeiro_Caixa_Mov com Funcionario pelo usuário de abertura; filtre por Fechamento nulo e funcionário inativo.",
       refSQL: `SELECT f.Ide, f.Caixa, fu.Nome
                FROM Financeiro_Caixa_Mov f JOIN Funcionario fu ON fu.Codigo = f.Abertura_Usuario
@@ -46,7 +46,7 @@ export const caso307: Case = {
       id: "o2",
       xp: 45,
       question:
-        "Chame de caixa travado o registro aberto (sem fechamento) cujo funcionário de abertura está inativo. Para cada um, encontre os funcionários ativos que tenham o mesmo caixa padrão do funcionário que abriu, como possíveis substitutos. Traga as colunas Ide do registro (chame de caixa_travado) e Nome do substituto (chame de substituto_possivel), nessa ordem. Caixas sem nenhum substituto não precisam aparecer.",
+        "Chame de caixa travado o registro aberto (sem fechamento) cujo funcionário de abertura está inativo. Para cada um, encontre os funcionários ativos que tenham o mesmo Caixa_Padrao do funcionário que abriu o registro, como possíveis substitutos. Atenção: Caixa_Padrao é um atributo do funcionário e pode ser diferente da coluna Caixa do registro, então o caixa travado nem sempre está no caixa padrão de quem o abriu. Traga as colunas Ide do registro (chame de caixa_travado) e Nome do substituto (chame de substituto_possivel), nessa ordem. Caixas sem nenhum substituto não precisam aparecer.",
       hint: "Um segundo JOIN com Funcionario (com outro apelido) comparando o Caixa_Padrao encontra colegas ativos vinculados ao mesmo caixa padrão.",
       refSQL: `SELECT f.Ide AS caixa_travado, fu_ativo.Nome AS substituto_possivel
                FROM Financeiro_Caixa_Mov f

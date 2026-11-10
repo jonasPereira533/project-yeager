@@ -38,7 +38,7 @@ export const caso303: Case = {
       xp: 20,
       question:
         "Some o total vendido por vendedor, em cada filial." +
-        " O relatorio deve conter na ordem o código da filial, nome do vendedor e o total vendido.",
+        " O relatorio deve conter na ordem o código da filial, código do vendedor e o total vendido.",
       hint: "SUM com GROUP BY por filial e vendedor já dá o total de cada um.",
       refSQL:
         "SELECT Filial__Codigo, Vendedor__Codigo, SUM(Total_Final) AS total FROM Movimento WHERE Efetivado = 1 GROUP BY Filial__Codigo, Vendedor__Codigo;",
