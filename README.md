@@ -450,10 +450,10 @@ nunca discordar do outro.
 
 Cada linha pode trazer três selos:
 
-| Selo | Quando |
-| --- | --- |
-| `1º` `2º` `3º` | posição no setor |
-| `SEM NENHUMA DICA` | fechou os 16 chamados sem abrir uma única dica |
+| Selo                       | Quando                                                    |
+| -------------------------- | --------------------------------------------------------- |
+| `1º` `2º` `3º`             | posição no setor                                          |
+| `SEM NENHUMA DICA`         | fechou os 16 chamados sem abrir uma única dica            |
 | `PRIMEIRO A FECHAR A FILA` | o menor `completedAt` entre quem é do setor e fechou tudo |
 
 **O placar não guarda XP pronto.** O documento público guarda as chaves `caseId:objectiveId` dos
@@ -465,7 +465,7 @@ O documento `leaderboard/{uid}` é de leitura pública e de escrita só pelo don
 
 ```ts
 {
-  displayName: "Jonas",
+  displayName: "Jonas Silva",
   solved: ["clientes-bloqueados:o1", "estoque-abaixo-minimo:o2"],
   hints: ["clientes-bloqueados:o3"],
   sector: "Partner",
@@ -474,7 +474,8 @@ O documento `leaderboard/{uid}` é de leitura pública e de escrita só pelo don
 }
 ```
 
-`displayName` é o primeiro nome do Google, com teto de 40 caracteres. `sector`, `completedAt` e
+`displayName` é o primeiro e o último nome do Google — o meio é descartado, então
+"Jonas Pereira da Silva" vira "Jonas Silva" — com limite de 40 caracteres. `sector`, `completedAt` e
 `updatedAt` são opcionais: `sector` nasce ausente e é escolhido uma vez, `completedAt` só é escrito
 na transição para fila fechada, e `updatedAt` tem de ser `== request.time`.
 
@@ -500,11 +501,11 @@ mas não aparece em nenhum recorte, e o placar avisa quantos estão assim.
 O que o setor decide: **tudo**. Os três selos são avaliados só dentro do recorte que está aberto —
 trocar de setor no seletor troca o resultado dos três.
 
-| Selo | Escopo |
-| --- | --- |
-| posição, `rank`, medalhas `1º` `2º` `3º` | setor aberto |
-| `PRIMEIRO A FECHAR A FILA` | setor aberto — o menor `completedAt` **entre quem é do setor** |
-| `SEM NENHUMA DICA` | setor aberto — mas é sobre a sua run, então é o mesmo em qualquer recorte |
+| Selo                                     | Escopo                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------- |
+| posição, `rank`, medalhas `1º` `2º` `3º` | setor aberto                                                              |
+| `PRIMEIRO A FECHAR A FILA`               | setor aberto — o menor `completedAt` **entre quem é do setor**            |
+| `SEM NENHUMA DICA`                       | setor aberto — mas é sobre a sua run, então é o mesmo em qualquer recorte |
 
 Não existe selo global. Cada setor tem o seu primeiro a fechar a fila, e ao abrir um setor novo o
 selo recomeça nele: quem já tinha fechado tudo antes não tem `completedAt`, então não entra na disputa
@@ -624,10 +625,10 @@ linha.
 ### O que isso expõe
 
 A coleção é lida por qualquer pessoa, **inclusive visitante sem conta**. O que vira público é o
-primeiro nome do Google e quais objetivos cada pessoa já resolveu. É uma escolha consciente: o
-progresso de um jogo de SQL é o mesmo que o placar precisa mostrar.
+primeiro e o último nome do Google e quais objetivos cada pessoa já resolveu. É uma escolha
+consciente: o progresso de um jogo de SQL é o mesmo que o placar precisa mostrar.
 
-O que as regras **não** garantem: um jogador pode escolher *não* declarar uma dica que abriu, para
+O que as regras **não** garantem: um jogador pode escolher _não_ declarar uma dica que abriu, para
 conquistar o selo de sem nenhuma dica. Pegar isso exigiria recalcular o XP no servidor a partir do
 documento privado — ou seja, Cloud Functions, que este projeto não usa.
 
@@ -689,20 +690,20 @@ project-yeager/
 
 ## Scripts
 
-| Comando              | O que faz                                                                       |
-| -------------------- | ------------------------------------------------------------------------------- |
-| `npm run dev`        | servidor de desenvolvimento com HMR                                             |
-| `npm run build`      | `vue-tsc -b` + build de produção em `dist/`                                     |
-| `npm run preview`    | serve localmente o build de produção                                            |
-| `npm run typecheck`  | checagem de tipos (`vue-tsc -b`)                                                |
-| `npm run lint`       | ESLint em todo o projeto                                                        |
-| `npm run lint:fix`   | ESLint corrigindo o que dá pra corrigir sozinho                                 |
-| `npm run test`       | testes com vitest (comparação de resultados, autocomplete, regras do Firestore) |
-| `npm run test:watch` | vitest em modo watch                                                            |
-| `npm run test:rules` | executa o `firestore.rules` no emulador do Firestore (precisa de Java)          |
-| `npm run check`      | o combo: typecheck + lint + test + build                                        |
-| `npm run rules:deploy`   | guarda uma cópia das regras e publica no Firestore                             |
-| `npm run rules:rollback` | restaura a última cópia (ou a de um commit) e republica                        |
+| Comando                  | O que faz                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `npm run dev`            | servidor de desenvolvimento com HMR                                             |
+| `npm run build`          | `vue-tsc -b` + build de produção em `dist/`                                     |
+| `npm run preview`        | serve localmente o build de produção                                            |
+| `npm run typecheck`      | checagem de tipos (`vue-tsc -b`)                                                |
+| `npm run lint`           | ESLint em todo o projeto                                                        |
+| `npm run lint:fix`       | ESLint corrigindo o que dá pra corrigir sozinho                                 |
+| `npm run test`           | testes com vitest (comparação de resultados, autocomplete, regras do Firestore) |
+| `npm run test:watch`     | vitest em modo watch                                                            |
+| `npm run test:rules`     | executa o `firestore.rules` no emulador do Firestore (precisa de Java)          |
+| `npm run check`          | o combo: typecheck + lint + test + build                                        |
+| `npm run rules:deploy`   | guarda uma cópia das regras e publica no Firestore                              |
+| `npm run rules:rollback` | restaura a última cópia (ou a de um commit) e republica                         |
 | `npm run rules:backup`   | guarda uma cópia datada das regras em `~/.yeager-rules/`                        |
 | `npm run rules:list`     | lista as cópias guardadas                                                       |
 
