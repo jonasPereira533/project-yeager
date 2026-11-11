@@ -14,8 +14,8 @@ import { isArchiveComplete } from "../utils/case-completion";
 import { progressKey } from "../utils/xp";
 import {
   LEADERBOARD_FIELDS,
-  firstName,
   shouldStampCompletion,
+  shortName,
   type Sector,
 } from "../utils/ranking";
 
@@ -103,7 +103,7 @@ function createLeaderboardEntry() {
     if (solved.length === 0) return null;
 
     const payload: LeaderboardWrite = {
-      displayName: firstName(displayName),
+      displayName: shortName(displayName),
       solved,
       hints,
       updatedAt: serverTimestamp(),

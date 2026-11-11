@@ -62,10 +62,21 @@ export const BADGE_LABELS: Record<RankBadge, string> = {
   noHints: "SEM NENHUMA DICA",
 };
 
-export function firstName(displayName: string | null | undefined): string {
+export function shortName(
+  displayName: string | null | undefined,
+  fallback: string = FALLBACK_NAME,
+): string {
   const normalized = (displayName ?? "").trim().replace(/\s+/g, " ");
-  if (!normalized) return FALLBACK_NAME;
-  return normalized.split(" ")[0].slice(0, MAX_DISPLAY_NAME_LENGTH);
+  if (!normalized) return fallback;
+
+  const parts = normalized.split(" ");
+  const name =
+    parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1]}` : parts[0];
+  if (name.length <= MAX_DISPLAY_NAME_LENGTH) return name;
+
+  const fits = name.slice(0, MAX_DISPLAY_NAME_LENGTH);
+  const boundary = fits.lastIndexOf(" ");
+  return (boundary > 0 ? fits.slice(0, boundary) : fits).trim();
 }
 
 export type StaffVisibility = "hidden" | "visible";
@@ -104,7 +115,7 @@ export function buildRankEntry(
 
   return {
     uid: source.uid,
-    name: firstName(source.displayName),
+    name: shortName(source.displayName),
     xp: computeTotalXP(cases, solved, source.hints),
     hintsUsed,
     objectivesSolved,
@@ -119,7 +130,10 @@ export function buildRankEntry(
   };
 }
 
-function compareEntries(a: Omit<RankEntry, "rank">, b: Omit<RankEntry, "rank">) {
+function compareEntries(
+  a: Omit<RankEntry, "rank">,
+  b: Omit<RankEntry, "rank">,
+) {
   if (a.xp !== b.xp) return b.xp - a.xp;
 
   if (a.completedAtMillis !== b.completedAtMillis) {

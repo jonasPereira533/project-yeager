@@ -6,9 +6,9 @@ import {
   buildRankEntry,
   collectStaffUids,
   firstFinisherUid,
-  firstName,
   rankEntries,
   shouldStampCompletion,
+  shortName,
   withoutStaff,
   type LeaderboardSource,
 } from "./ranking";
@@ -56,23 +56,36 @@ function source(
   };
 }
 
-describe("primeiro nome", () => {
-  it("guarda so o primeiro nome do google", () => {
-    expect(firstName("Jonas Pereira da Silva")).toBe("Jonas");
+describe("nome curto", () => {
+  it("guarda so o primeiro e o ultimo nome do google", () => {
+    expect(shortName("Jonas Pereira da Silva")).toBe("Jonas Silva");
+    expect(shortName("João da Silva Neto")).toBe("João Neto");
+  });
+
+  it("nome de uma palavra fica como esta", () => {
+    expect(shortName("Madonna")).toBe("Madonna");
+    expect(shortName("  Madonna  ")).toBe("Madonna");
   });
 
   it("normaliza espacos sobrando", () => {
-    expect(firstName("  Jonas   Pereira  ")).toBe("Jonas");
+    expect(shortName("  Jonas   Pereira  ")).toBe("Jonas Pereira");
   });
 
-  it("sem nome vira Agente", () => {
-    expect(firstName(null)).toBe("Agente");
-    expect(firstName(undefined)).toBe("Agente");
-    expect(firstName("   ")).toBe("Agente");
+  it("sem nome vira Agente, mas aceita outro fallback", () => {
+    expect(shortName(null)).toBe("Agente");
+    expect(shortName(undefined)).toBe("Agente");
+    expect(shortName("   ")).toBe("Agente");
+    expect(shortName(null, "")).toBe("");
   });
 
   it("corta no mesmo teto das regras", () => {
-    expect(firstName("J".repeat(80))).toHaveLength(40);
+    expect(shortName("J".repeat(80))).toHaveLength(40);
+  });
+
+  it("corta na fronteira de palavra, sem deixar a letra pela metade", () => {
+    expect(shortName(`${"J".repeat(39)} Silva`)).toBe("J".repeat(39));
+    expect(shortName(`${"J".repeat(40)} Silva`)).toHaveLength(40);
+    expect(shortName(`Ana ${"S".repeat(50)}`)).toBe("Ana");
   });
 });
 
@@ -88,7 +101,7 @@ describe("linha do placar", () => {
     );
 
     expect(entry.xp).toBe(50);
-    expect(entry.name).toBe("Jonas");
+    expect(entry.name).toBe("Jonas Pereira");
     expect(entry.objectivesSolved).toBe(2);
     expect(entry.casesSolved).toBe(1);
     expect(entry.archiveComplete).toBe(false);

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAuth } from "../../composables/use-auth";
+import { shortName } from "../../utils/ranking";
 
 const { user } = useAuth();
 </script>
@@ -32,7 +33,7 @@ const { user } = useAuth();
     <div class="welcome-card">
       <i class="ti ti-hat-cowboy card-icon" aria-hidden="true"></i>
       <h2 v-if="user">
-        Bem-vindo, Técnico {{ user.displayName?.split(" ")[0] }}
+        Bem-vindo, Técnico {{ shortName(user.displayName, "") }}
       </h2>
       <h2 v-else>Bem-vindo</h2>
       <p>
